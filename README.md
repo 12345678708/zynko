@@ -1,1 +1,3 @@
 # zynko
+flask
+gunicorn
