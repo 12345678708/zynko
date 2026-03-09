@@ -6,9 +6,6 @@ import string
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
 
-# -----------------------------
-# Base de données
-# -----------------------------
 def get_db():
     conn = sqlite3.connect("zynko.db")
     conn.row_factory = sqlite3.Row
@@ -29,24 +26,15 @@ def init_db():
 
 init_db()
 
-# -----------------------------
-# Générer code ami
-# -----------------------------
 def generate_code():
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 
-# -----------------------------
-# Page accueil
-# -----------------------------
 @app.route("/")
 def home():
     if "username" in session:
         return redirect("/chat")
     return redirect("/login")
 
-# -----------------------------
-# Login
-# -----------------------------
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
@@ -66,9 +54,6 @@ def login():
 
     return render_template("login.html")
 
-# -----------------------------
-# Register
-# -----------------------------
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
@@ -91,9 +76,6 @@ def register():
 
     return render_template("register.html")
 
-# -----------------------------
-# Chat
-# -----------------------------
 @app.route("/chat")
 def chat():
     if "username" not in session:
@@ -104,21 +86,14 @@ def chat():
         "SELECT friend_code FROM users WHERE username=?",
         (session["username"],)
     ).fetchone()
-
     conn.close()
 
     return render_template("chat.html", code=code["friend_code"])
 
-# -----------------------------
-# Logout
-# -----------------------------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
 
-# -----------------------------
-# Lancer serveur
-# -----------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
