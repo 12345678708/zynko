@@ -1,47 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
 <title>Zynko Chat</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+<body class="dark-mode">
 
-<body>
-
+<header>
 <h1>Zynko Chat</h1>
+<p>Connecté : {{ username }}</p>
+<a href="/logout" class="logout-btn">Se déconnecter</a>
+</header>
 
-<p>Connecté : {{session.username}}</p>
-
-<h2>Envoyer message</h2>
-
-<form method="post">
-
-<input name="receiver" placeholder="Envoyer à">
-
-<br><br>
-
-<input name="message" placeholder="Message">
-
-<br><br>
-
-<button type="submit">Envoyer</button>
-
-</form>
-
-<hr>
-
-<h2>Messages</h2>
-
-{% for msg in messages %}
-
-<p>
-<b>{{msg.sender}}</b> ➜ {{msg.receiver}} :
-{{msg.message}}
-</p>
-
+<section class="friends">
+<h2>Amis</h2>
+<ul>
+{% for friend in friends %}
+<li>
+<img src="{{ friend['profile_pic'] }}" class="avatar">
+{{ friend['username'] }} (Code: {{ friend['friend_code'] }})
+</li>
 {% endfor %}
+</ul>
+</section>
 
-<br>
+<section class="messages">
+<h2>Messages</h2>
+{% for msg in messages %}
+<div class="message {{ 'mine' if msg['sender']==username else 'other' }}">
+<strong>{{ msg['sender'] }}</strong> ➜ {{ msg['receiver'] }} : {{ msg['message'] }}
+</div>
+{% endfor %}
+</section>
 
-<a href="/logout">Se déconnecter</a>
+<section class="send-message">
+<h2>Envoyer un message</h2>
+<form method="post">
+<input name="receiver" placeholder="Envoyer à">
+<textarea name="message" placeholder="Message (max 200 caractères)"></textarea>
+<button type="submit">Envoyer</button>
+</form>
+</section>
 
+<button id="toggle-theme">Mode Clair/Sombre</button>
+
+<script>
+const toggle = document.getElementById("toggle-theme");
+toggle.onclick = () => {
+document.body.classList.toggle("dark-mode");
+document.body.classList.toggle("light-mode");
+};
+</script>
 </body>
 </html>
