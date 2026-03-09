@@ -3,13 +3,43 @@
 <head>
 <title>Zynko Chat</title>
 </head>
+
 <body>
 
-<h1>Zynko</h1>
+<h1>Zynko Chat</h1>
 
-<p>Bienvenue {{session.username}}</p>
+<p>Connecté : {{session.username}}</p>
 
-<p>Ton code ami : <b>{{code}}</b></p>
+<h2>Envoyer message</h2>
+
+<form method="post">
+
+<input name="receiver" placeholder="Envoyer à">
+
+<br><br>
+
+<input name="message" placeholder="Message">
+
+<br><br>
+
+<button type="submit">Envoyer</button>
+
+</form>
+
+<hr>
+
+<h2>Messages</h2>
+
+{% for msg in messages %}
+
+<p>
+<b>{{msg.sender}}</b> ➜ {{msg.receiver}} :
+{{msg.message}}
+</p>
+
+{% endfor %}
+
+<br>
 
 <a href="/logout">Se déconnecter</a>
 
