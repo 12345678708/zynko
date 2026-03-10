@@ -1,38 +1,29 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Zynko</title>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="/static/style.css">
 
 </head>
 
 <body>
 
-<div class="app">
+<div class="container">
 
 <div class="sidebar">
 
-<h2>Zynko</h2>
+<div class="logo">Zynko</div>
 
-<p class="user">👤 {{username}}</p>
+<p>👤 {{username}}</p>
 
-<h3>Amis</h3>
+<p>Code ami : {{code}}</p>
 
-<ul>
-{% for friend in friends %}
-<li>
-<img src="{{ friend['profile_pic'] }}" class="avatar">
-{{ friend['username'] }}
-</li>
-{% endfor %}
-</ul>
-
-<a href="/logout" class="logout">Déconnexion</a>
+<a href="/logout">Déconnexion</a>
 
 </div>
 
@@ -40,11 +31,14 @@
 
 <div class="messages">
 
-{% for msg in messages %}
+{% for m in messages %}
 
-<div class="bubble {% if msg.sender == username %}me{% else %}other{% endif %}">
-<strong>{{msg.sender}}</strong><br>
-{{msg.message}}
+<div class="bubble {% if m[1]==username %}me{% else %}other{% endif %}">
+
+<b>{{m[1]}}</b><br>
+
+{{m[3]}}
+
 </div>
 
 {% endfor %}
@@ -53,11 +47,11 @@
 
 <form method="post" class="send">
 
-<input name="receiver" placeholder="Envoyer à">
+<input name="receiver" placeholder="Pseudo ami">
 
-<input name="message" placeholder="Message...">
+<input name="message" placeholder="Message">
 
-<button type="submit">➤</button>
+<button>➤</button>
 
 </form>
 
