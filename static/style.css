@@ -1,42 +1,94 @@
-body {
-font-family: Arial;
+body{
 margin:0;
-padding:0;
-}
-
-.dark-mode{
+font-family:Arial;
 background:#0f172a;
 color:white;
 }
 
-.light-mode{
-background:white;
-color:black;
+.app{
+display:flex;
+height:100vh;
 }
 
-header{
-text-align:center;
-padding:15px;
+.sidebar{
+width:250px;
+background:#020617;
+padding:20px;
+}
+
+.sidebar h2{
+color:#22c55e;
+}
+
+.sidebar ul{
+list-style:none;
+padding:0;
+}
+
+.sidebar li{
+padding:8px;
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.avatar{
+width:35px;
+height:35px;
+border-radius:50%;
+}
+
+.logout{
+color:red;
+text-decoration:none;
+}
+
+.chat{
+flex:1;
+display:flex;
+flex-direction:column;
 }
 
 .messages{
-padding:10px;
+flex:1;
+padding:20px;
+overflow-y:auto;
 }
 
-.message{
+.bubble{
+max-width:60%;
 padding:10px;
-margin:5px;
-border-radius:8px;
+margin:10px;
+border-radius:10px;
 }
 
-.mine{
+.me{
 background:#22c55e;
-color:white;
 margin-left:auto;
 }
 
 .other{
 background:#334155;
-color:white;
-margin-right:auto;
+}
+
+.send{
+display:flex;
+padding:10px;
+background:#020617;
+}
+
+.send input{
+flex:1;
+padding:10px;
+margin-right:10px;
+border:none;
+border-radius:5px;
+}
+
+.send button{
+background:#22c55e;
+border:none;
+padding:10px 20px;
+border-radius:5px;
+cursor:pointer;
 }
