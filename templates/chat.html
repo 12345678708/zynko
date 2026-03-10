@@ -1,56 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Zynko Chat</title>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Zynko</title>
+
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
-<body class="dark-mode">
 
-<header>
-<h1>Zynko Chat</h1>
-<p>Connecté : {{ username }}</p>
-<a href="/logout" class="logout-btn">Se déconnecter</a>
-</header>
+<body>
 
-<section class="friends">
-<h2>Amis</h2>
+<div class="app">
+
+<div class="sidebar">
+
+<h2>Zynko</h2>
+
+<p class="user">👤 {{username}}</p>
+
+<h3>Amis</h3>
+
 <ul>
 {% for friend in friends %}
 <li>
 <img src="{{ friend['profile_pic'] }}" class="avatar">
-{{ friend['username'] }} (Code: {{ friend['friend_code'] }})
+{{ friend['username'] }}
 </li>
 {% endfor %}
 </ul>
-</section>
 
-<section class="messages">
-<h2>Messages</h2>
-{% for msg in messages %}
-<div class="message {{ 'mine' if msg['sender']==username else 'other' }}">
-<strong>{{ msg['sender'] }}</strong> ➜ {{ msg['receiver'] }} : {{ msg['message'] }}
+<a href="/logout" class="logout">Déconnexion</a>
+
 </div>
+
+<div class="chat">
+
+<div class="messages">
+
+{% for msg in messages %}
+
+<div class="bubble {% if msg.sender == username %}me{% else %}other{% endif %}">
+<strong>{{msg.sender}}</strong><br>
+{{msg.message}}
+</div>
+
 {% endfor %}
-</section>
 
-<section class="send-message">
-<h2>Envoyer un message</h2>
-<form method="post">
+</div>
+
+<form method="post" class="send">
+
 <input name="receiver" placeholder="Envoyer à">
-<textarea name="message" placeholder="Message (max 200 caractères)"></textarea>
-<button type="submit">Envoyer</button>
+
+<input name="message" placeholder="Message...">
+
+<button type="submit">➤</button>
+
 </form>
-</section>
 
-<button id="toggle-theme">Mode Clair/Sombre</button>
+</div>
 
-<script>
-const toggle = document.getElementById("toggle-theme");
-toggle.onclick = () => {
-document.body.classList.toggle("dark-mode");
-document.body.classList.toggle("light-mode");
-};
-</script>
+</div>
+
 </body>
 </html>
