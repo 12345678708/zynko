@@ -4,7 +4,6 @@
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Zynko</title>
 
 <link rel="stylesheet" href="/static/style.css">
@@ -13,25 +12,19 @@
 
 <body>
 
-<center>
+<h2>Connexion</h2>
 
-<h1>Zynko</h1>
+<form method="POST">
 
-<form method="post">
+<input name="username" placeholder="Pseudo" required>
 
-<input name="username" placeholder="Pseudo"><br><br>
-
-<input type="password" name="password" placeholder="Mot de passe"><br><br>
+<input type="password" name="password" placeholder="Mot de passe" required>
 
 <button>Connexion</button>
 
 </form>
 
-<br>
-
 <a href="/register">Créer un compte</a>
-
-</center>
 
 </body>
 </html>
