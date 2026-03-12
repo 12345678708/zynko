@@ -9,14 +9,9 @@
 
 <link rel="stylesheet" href="/static/style.css">
 
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="/static/script.js"></script>
-
 </head>
 
 <body>
-
-<div class="container">
 
 <div class="header">
 
@@ -26,19 +21,27 @@ Zynko — {{username}}
 
 </div>
 
-<div id="messages" class="messages"></div>
+<div class="messages">
 
-<div class="send">
+{% for m in messages %}
 
-<input id="receiver" placeholder="Pseudo ami">
+<div class="bubble">
 
-<input id="msg" placeholder="Message">
-
-<button onclick="sendMessage()">Envoyer</button>
+<b>{{m[0]}}</b> : {{m[1]}}
 
 </div>
 
+{% endfor %}
+
 </div>
+
+<form method="POST" class="send">
+
+<input name="message" placeholder="Message">
+
+<button>Envoyer</button>
+
+</form>
 
 </body>
 </html>
