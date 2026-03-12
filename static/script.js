@@ -1,41 +1,28 @@
-let currentFriend=null
+const socket = io()
 
-function openChat(friend){
+function sendMessage(){
 
-currentFriend=friend
+let msg = document.getElementById("msg").value
+let receiver = document.getElementById("receiver").value
 
-loadMessages()
+socket.emit("send_message",{
+receiver:receiver,
+message:msg
+})
 
-setInterval(loadMessages,2000)
-
+document.getElementById("msg").value=""
 }
 
-function loadMessages(){
-
-if(!currentFriend)return
-
-fetch("/messages/"+currentFriend)
-
-.then(r=>r.json())
-
-.then(data=>{
+socket.on("receive_message", function(data){
 
 let box=document.getElementById("messages")
-
-box.innerHTML=""
-
-data.forEach(m=>{
 
 let div=document.createElement("div")
 
 div.className="bubble"
 
-div.innerText=m[0]+" : "+m[1]
+div.innerText=data.sender+" : "+data.message
 
 box.appendChild(div)
 
 })
-
-})
-
-}
