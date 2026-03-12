@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, session
+from flask_socketio import SocketIO, emit
 import sqlite3
 import random
 import string
-import time
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
+
+socketio = SocketIO(app)
 
 DATABASE = "zynko.db"
 
@@ -24,16 +26,7 @@ def init_db():
         id INTEGER PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT,
-        friend_code TEXT UNIQUE,
-        last_seen INTEGER
-    )
-    """)
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS friends(
-        id INTEGER PRIMARY KEY,
-        user TEXT,
-        friend TEXT
+        friend_code TEXT UNIQUE
     )
     """)
 
@@ -42,8 +35,7 @@ def init_db():
         id INTEGER PRIMARY KEY,
         sender TEXT,
         receiver TEXT,
-        message TEXT,
-        time INTEGER
+        message TEXT
     )
     """)
 
@@ -56,20 +48,6 @@ init_db()
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-
-
-def update_status(user):
-
-    db = get_db()
-    c = db.cursor()
-
-    c.execute(
-        "UPDATE users SET last_seen=? WHERE username=?",
-        (int(time.time()),user)
-    )
-
-    db.commit()
-    db.close()
 
 
 # LOGIN
@@ -124,8 +102,8 @@ def register():
         try:
 
             c.execute(
-                "INSERT INTO users(username,password,friend_code,last_seen) VALUES(?,?,?,?)",
-                (username,password,code,int(time.time()))
+                "INSERT INTO users(username,password,friend_code) VALUES(?,?,?)",
+                (username,password,code)
             )
 
             db.commit()
@@ -151,115 +129,37 @@ def chat():
 
     username = session["user"]
 
-    update_status(username)
-
-    db = get_db()
-    c = db.cursor()
-
-    friends = c.execute(
-        "SELECT friend FROM friends WHERE user=?",
-        (username,)
-    ).fetchall()
-
-    code = c.execute(
-        "SELECT friend_code FROM users WHERE username=?",
-        (username,)
-    ).fetchone()
-
-    db.close()
-
-    if code:
-        code = code[0]
-
     return render_template(
         "chat.html",
-        username=username,
-        friends=friends,
-        code=code
+        username=username
     )
 
 
-# SEND MESSAGE
+# SOCKET MESSAGE
 
-@app.route("/send", methods=["POST"])
+@socketio.on("send_message")
 
-def send():
+def handle_message(data):
 
     sender = session["user"]
-    receiver = request.form["receiver"]
-    message = request.form["message"]
+    receiver = data["receiver"]
+    message = data["message"]
 
     db = get_db()
     c = db.cursor()
 
     c.execute(
-        "INSERT INTO messages(sender,receiver,message,time) VALUES(?,?,?,?)",
-        (sender,receiver,message,int(time.time()))
+        "INSERT INTO messages(sender,receiver,message) VALUES(?,?,?)",
+        (sender,receiver,message)
     )
 
     db.commit()
     db.close()
 
-    return "ok"
-
-
-# GET MESSAGES
-
-@app.route("/messages/<friend>")
-
-def messages(friend):
-
-    user = session["user"]
-
-    db = get_db()
-    c = db.cursor()
-
-    msgs = c.execute(
-        """
-        SELECT sender,message,time FROM messages
-        WHERE (sender=? AND receiver=?)
-        OR (sender=? AND receiver=?)
-        ORDER BY time
-        """,
-        (user,friend,friend,user)
-    ).fetchall()
-
-    db.close()
-
-    return jsonify(msgs)
-
-
-# ADD FRIEND
-
-@app.route("/add_friend", methods=["POST"])
-
-def add_friend():
-
-    code = request.form["code"]
-    user = session["user"]
-
-    db = get_db()
-    c = db.cursor()
-
-    friend = c.execute(
-        "SELECT username FROM users WHERE friend_code=?",
-        (code,)
-    ).fetchone()
-
-    if friend:
-
-        friend = friend[0]
-
-        c.execute(
-            "INSERT INTO friends(user,friend) VALUES(?,?)",
-            (user,friend)
-        )
-
-        db.commit()
-
-    db.close()
-
-    return redirect("/chat")
+    emit("receive_message", {
+        "sender": sender,
+        "message": message
+    }, broadcast=True)
 
 
 # LOGOUT
@@ -273,4 +173,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run()
+    socketio.run(app)
