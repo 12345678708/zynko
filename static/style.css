@@ -19,17 +19,26 @@ overflow:auto;
 
 .logo{
 font-size:26px;
-font-weight:bold;
 color:#22c55e;
+font-weight:bold;
 margin-bottom:20px;
 }
 
 .friend{
+display:flex;
+align-items:center;
 background:#1e293b;
 padding:10px;
 border-radius:8px;
 margin-bottom:8px;
 cursor:pointer;
+}
+
+.friend img{
+width:30px;
+height:30px;
+border-radius:50%;
+margin-right:10px;
 }
 
 .chat{
@@ -89,7 +98,7 @@ flex-direction:column;
 
 .sidebar{
 width:100%;
-height:200px;
+height:220px;
 }
 
 }
