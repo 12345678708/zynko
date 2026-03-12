@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 
 <head>
 
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Zynko Register</title>
+<title>Créer un compte - Zynko</title>
 
 <link rel="stylesheet" href="/static/style.css">
 
@@ -13,21 +14,42 @@
 
 <body>
 
-<center>
+<h2>Créer un compte</h2>
 
-<h1>Créer un compte</h1>
+<form method="POST" action="/register">
 
-<form method="post">
+<input 
+type="text"
+name="username"
+placeholder="Pseudo"
+maxlength="20"
+required
+>
 
-<input name="username" maxlength="12" placeholder="Pseudo (12 max)"><br><br>
+<input 
+type="email"
+name="email"
+placeholder="Email"
+required
+>
 
-<input type="password" name="password" placeholder="Mot de passe"><br><br>
+<input 
+type="password"
+name="password"
+placeholder="Mot de passe"
+required
+>
 
-<button>S'inscrire</button>
+<button type="submit">
+S'inscrire
+</button>
 
 </form>
 
-</center>
+<br>
+
+<a href="/login">Déjà un compte ? Se connecter</a>
 
 </body>
+
 </html>
