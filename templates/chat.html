@@ -7,7 +7,9 @@
 
 <title>Zynko</title>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="/static/style.css">
+
+<script src="/static/script.js"></script>
 
 </head>
 
@@ -25,19 +27,27 @@
 
 <a href="/logout">Déconnexion</a>
 
-</div>
+<hr>
 
-<div class="chat">
+<h3>Ajouter ami</h3>
 
-<div class="messages">
+<form method="post" action="/add_friend">
 
-{% for m in messages %}
+<input name="code" placeholder="Code ami">
 
-<div class="bubble {% if m[1]==username %}me{% else %}other{% endif %}">
+<button>Ajouter</button>
 
-<b>{{m[1]}}</b><br>
+</form>
 
-{{m[3]}}
+<hr>
+
+<h3>Amis</h3>
+
+{% for f in friends %}
+
+<div class="friend" onclick="openChat('{{f[0]}}')">
+
+{{f[0]}}
 
 </div>
 
@@ -45,19 +55,45 @@
 
 </div>
 
-<form method="post" class="send">
+<div class="chat">
 
-<input name="receiver" placeholder="Pseudo ami">
+<div id="messages" class="messages"></div>
 
-<input name="message" placeholder="Message">
+<form class="send" onsubmit="sendMessage(event)">
 
-<button>➤</button>
+<input id="msg" placeholder="Message">
+
+<button>Envoyer</button>
 
 </form>
 
 </div>
 
 </div>
+
+<script>
+
+function sendMessage(e){
+
+e.preventDefault()
+
+let msg=document.getElementById("msg").value
+
+fetch("/send",{
+
+method:"POST",
+
+headers:{"Content-Type":"application/x-www-form-urlencoded"},
+
+body:"receiver="+currentFriend+"&message="+msg
+
+})
+
+document.getElementById("msg").value=""
+
+}
+
+</script>
 
 </body>
 </html>
