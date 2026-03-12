@@ -1,6 +1,6 @@
 body{
 margin:0;
-font-family:Arial;
+font-family:system-ui;
 background:#0f172a;
 color:white;
 }
@@ -11,7 +11,7 @@ height:100vh;
 }
 
 .sidebar{
-width:250px;
+width:260px;
 background:#020617;
 padding:20px;
 }
@@ -21,6 +21,14 @@ font-size:28px;
 color:#22c55e;
 font-weight:bold;
 margin-bottom:20px;
+}
+
+.friend{
+padding:10px;
+background:#1e293b;
+border-radius:8px;
+margin-bottom:8px;
+cursor:pointer;
 }
 
 .chat{
@@ -70,13 +78,4 @@ background:#22c55e;
 border:none;
 padding:10px 20px;
 border-radius:6px;
-cursor:pointer;
-}
-
-@media (max-width:700px){
-
-.sidebar{
-display:none;
-
-}
 }
