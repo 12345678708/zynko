@@ -1,8 +1,8 @@
-let currentFriend = null
+let currentFriend=null
 
 function openChat(friend){
 
-currentFriend = friend
+currentFriend=friend
 
 loadMessages()
 
@@ -12,7 +12,7 @@ setInterval(loadMessages,2000)
 
 function loadMessages(){
 
-if(!currentFriend) return
+if(!currentFriend)return
 
 fetch("/messages/"+currentFriend)
 
@@ -20,7 +20,7 @@ fetch("/messages/"+currentFriend)
 
 .then(data=>{
 
-let box = document.getElementById("messages")
+let box=document.getElementById("messages")
 
 box.innerHTML=""
 
