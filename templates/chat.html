@@ -29,8 +29,6 @@
 
 <hr>
 
-<h3>Ajouter ami</h3>
-
 <form method="post" action="/add_friend">
 
 <input name="code" placeholder="Code ami">
@@ -41,11 +39,11 @@
 
 <hr>
 
-<h3>Amis</h3>
-
 {% for f in friends %}
 
 <div class="friend" onclick="openChat('{{f[0]}}')">
+
+<img src="/static/avatar.png">
 
 {{f[0]}}
 
