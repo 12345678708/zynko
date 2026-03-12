@@ -1,25 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 
 <head>
 
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Zynko</title>
 
 <link rel="stylesheet" href="/static/style.css">
 
+<!-- PWA -->
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#22c55e">
+
 </head>
 
 <body>
 
-<div class="header">
+<div class="container">
 
-Zynko — {{username}}
+<header class="header">
 
-<a href="/logout">Déconnexion</a>
-
+<div class="logo">
+<img src="/static/avatar.png" width="35">
+<span>Zynko</span>
 </div>
+
+<div class="user">
+{{username}}
+<a href="/logout">Déconnexion</a>
+</div>
+
+</header>
 
 <div class="messages">
 
@@ -27,7 +40,8 @@ Zynko — {{username}}
 
 <div class="bubble">
 
-<b>{{m[0]}}</b> : {{m[1]}}
+<b>{{m[0]}}</b><br>
+{{m[1]}}
 
 </div>
 
@@ -37,11 +51,27 @@ Zynko — {{username}}
 
 <form method="POST" class="send">
 
-<input name="message" placeholder="Message">
+<input 
+name="message"
+placeholder="Écrire un message..."
+maxlength="300"
+required
+>
 
 <button>Envoyer</button>
 
 </form>
+
+</div>
+
+
+<script>
+
+if ("serviceWorker" in navigator) {
+navigator.serviceWorker.register("/static/sw.js")
+}
+
+</script>
 
 </body>
 </html>
