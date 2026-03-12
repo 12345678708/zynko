@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3
 import random
 import string
+import time
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
@@ -23,7 +24,8 @@ def init_db():
         id INTEGER PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT,
-        friend_code TEXT UNIQUE
+        friend_code TEXT UNIQUE,
+        last_seen INTEGER
     )
     """)
 
@@ -40,7 +42,8 @@ def init_db():
         id INTEGER PRIMARY KEY,
         sender TEXT,
         receiver TEXT,
-        message TEXT
+        message TEXT,
+        time INTEGER
     )
     """)
 
@@ -53,6 +56,20 @@ init_db()
 
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+
+def update_status(user):
+
+    db = get_db()
+    c = db.cursor()
+
+    c.execute(
+        "UPDATE users SET last_seen=? WHERE username=?",
+        (int(time.time()),user)
+    )
+
+    db.commit()
+    db.close()
 
 
 # LOGIN
@@ -107,8 +124,8 @@ def register():
         try:
 
             c.execute(
-                "INSERT INTO users(username,password,friend_code) VALUES(?,?,?)",
-                (username,password,code)
+                "INSERT INTO users(username,password,friend_code,last_seen) VALUES(?,?,?,?)",
+                (username,password,code,int(time.time()))
             )
 
             db.commit()
@@ -123,7 +140,7 @@ def register():
     return render_template("register.html")
 
 
-# PAGE CHAT
+# CHAT PAGE
 
 @app.route("/chat")
 
@@ -133,6 +150,8 @@ def chat():
         return redirect("/login")
 
     username = session["user"]
+
+    update_status(username)
 
     db = get_db()
     c = db.cursor()
@@ -160,7 +179,7 @@ def chat():
     )
 
 
-# ENVOYER MESSAGE
+# SEND MESSAGE
 
 @app.route("/send", methods=["POST"])
 
@@ -174,8 +193,8 @@ def send():
     c = db.cursor()
 
     c.execute(
-        "INSERT INTO messages(sender,receiver,message) VALUES(?,?,?)",
-        (sender,receiver,message)
+        "INSERT INTO messages(sender,receiver,message,time) VALUES(?,?,?,?)",
+        (sender,receiver,message,int(time.time()))
     )
 
     db.commit()
@@ -184,7 +203,7 @@ def send():
     return "ok"
 
 
-# RECEVOIR MESSAGES
+# GET MESSAGES
 
 @app.route("/messages/<friend>")
 
@@ -197,9 +216,10 @@ def messages(friend):
 
     msgs = c.execute(
         """
-        SELECT sender,message FROM messages
+        SELECT sender,message,time FROM messages
         WHERE (sender=? AND receiver=?)
         OR (sender=? AND receiver=?)
+        ORDER BY time
         """,
         (user,friend,friend,user)
     ).fetchall()
@@ -209,7 +229,7 @@ def messages(friend):
     return jsonify(msgs)
 
 
-# AJOUT AMI
+# ADD FRIEND
 
 @app.route("/add_friend", methods=["POST"])
 
