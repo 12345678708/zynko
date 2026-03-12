@@ -12,6 +12,8 @@ setInterval(loadMessages,2000)
 
 function loadMessages(){
 
+if(!currentFriend) return
+
 fetch("/messages/"+currentFriend)
 
 .then(r=>r.json())
