@@ -1,108 +1,94 @@
 <!DOCTYPE html>
-
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zynko Chat</title>
-
 <link rel="stylesheet" href="/static/style.css">
-
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-
 <body>
 
 <header class="topbar">
-
 <div class="logo">
 <img src="/static/avatar.png" class="avatar">
 <span>Zynko</span>
 </div>
 
 <div class="user">
-
 <span>{{username}}</span>
-
 <button onclick="toggleMode()">🌙</button>
-
 <a href="/logout">Logout</a>
-
 </div>
-
 </header>
 
 <div class="chat-container">
 
-<div class="messages" id="messages">
-
-{% for m in messages %}
-
-<div class="message">
-
-<b>{{m[0]}}</b>
-
-<p>{{m[1]}}</p>
-
-{% if m[2] %}
-
-<img src="/static/uploads/{{m[2]}}" class="image">
-
-{% endif %}
-
-{% if m[3] %}
-
-<audio controls>
-
-<source src="/static/uploads/{{m[3]}}">
-
-</audio>
-
-{% endif %}
-
-</div>
-
+<div class="friends">
+<h3>👥 Amis</h3>
+<ul id="user-list">
+{% for u,v in users.items() %}
+<li>{{u}} {% if v.online %}🟢{% else %}⚪{% endif %}</li>
 {% endfor %}
-
+</ul>
 </div>
 
-<form method="POST" enctype="multipart/form-data" class="send">
+<div class="messages" id="messages">
+<!-- messages dynamiques -->
+</div>
 
-<input
-name="message"
-placeholder="Message..."
-maxlength="500"
-
->
-
-<input type="file" name="image">
-
-<input type="file" name="audio">
-
+<form id="chat-form">
+<input type="text" id="msg" placeholder="Écrire un message..." maxlength="500" autocomplete="off">
+<input type="file" id="file-input">
 <button>Envoyer</button>
-
 </form>
 
 </div>
 
 <script>
+const socket = io();
+
+const username = "{{username}}";
+const messages = document.getElementById("messages");
+const msgInput = document.getElementById("msg");
+const fileInput = document.getElementById("file-input");
+
+// join personal room
+socket.emit("join_room", {room: username});
+
+// send message
+document.getElementById("chat-form").onsubmit = function(e){
+    e.preventDefault();
+    let file = fileInput.files[0] ? fileInput.files[0].name : null;
+    socket.emit("send_message", {target: username, text: msgInput.value, image: file});
+    msgInput.value = "";
+    fileInput.value = "";
+};
+
+// receive message
+socket.on("new_message", data => {
+    let div = document.createElement("div");
+    div.classList.add("message");
+    div.innerHTML = `<b>${data.sender}</b>: ${data.text || ""} ${data.image ? '<img src="/static/uploads/'+data.image+'">' : ""}`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+});
+
+// update users list
+socket.on("user_list", data => {
+    let ul = document.getElementById("user-list");
+    ul.innerHTML = "";
+    for(let u in data){
+        let li = document.createElement("li");
+        li.textContent = u + (data[u].online ? " 🟢" : " ⚪");
+        ul.appendChild(li);
+    }
+});
 
 function toggleMode(){
-
-document.body.classList.toggle("light")
-
+    document.body.classList.toggle("light");
 }
-
-setInterval(function(){
-
-location.reload()
-
-},3000)
-
 </script>
 
 </body>
-
 </html>
