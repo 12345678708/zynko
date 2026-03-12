@@ -1,10 +1,14 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, send_from_directory
 import sqlite3
+import os
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
 
 DATABASE="zynko.db"
+UPLOAD_FOLDER="static/uploads"
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def get_db():
@@ -20,8 +24,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
-    email TEXT UNIQUE,
-    password TEXT
+    email TEXT,
+    password TEXT,
+    online INTEGER DEFAULT 0
     )
     """)
 
@@ -38,7 +43,9 @@ def init_db():
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sender TEXT,
     receiver TEXT,
-    message TEXT
+    message TEXT,
+    image TEXT,
+    audio TEXT
     )
     """)
 
@@ -68,12 +75,16 @@ def login():
         (username,password)
         ).fetchone()
 
-        db.close()
-
         if user:
 
             session["user"]=username
-            return redirect("/chat")
+
+            c.execute("UPDATE users SET online=1 WHERE username=?", (username,))
+            db.commit()
+
+            return redirect("/friends")
+
+        db.close()
 
     return render_template("login.html")
 
@@ -103,7 +114,7 @@ def register():
             db.commit()
 
         except:
-            return "Utilisateur ou email déjà utilisé"
+            return "Utilisateur déjà utilisé"
 
         db.close()
 
@@ -137,10 +148,12 @@ def friends():
 
         db.commit()
 
-    friends=c.execute(
-    "SELECT friend FROM friends WHERE user=?",
-    (username,)
-    ).fetchall()
+    friends=c.execute("""
+    SELECT users.username, users.online
+    FROM friends
+    JOIN users ON users.username=friends.friend
+    WHERE friends.user=?
+    """,(username,)).fetchall()
 
     db.close()
 
@@ -164,38 +177,57 @@ def chat():
 
     if request.method=="POST":
 
-        message=request.form["message"]
+        message=request.form.get("message")
+        image=request.files.get("image")
+        audio=request.files.get("audio")
 
-        c.execute(
-        "INSERT INTO messages(sender,receiver,message) VALUES(?,?,?)",
-        (username,receiver,message)
-        )
+        image_name=None
+        audio_name=None
+
+        if image and image.filename!="":
+            image_name=image.filename
+            image.save(os.path.join(UPLOAD_FOLDER,image_name))
+
+        if audio and audio.filename!="":
+            audio_name=audio.filename
+            audio.save(os.path.join(UPLOAD_FOLDER,audio_name))
+
+        c.execute("""
+        INSERT INTO messages(sender,receiver,message,image,audio)
+        VALUES(?,?,?,?,?)
+        """,(username,receiver,message,image_name,audio_name))
 
         db.commit()
 
-    messages=c.execute(
-    """SELECT sender,message FROM messages
+    messages=c.execute("""
+    SELECT sender,message,image,audio FROM messages
     WHERE (sender=? AND receiver=?)
     OR (sender=? AND receiver=?)
-    """,
-    (username,receiver,receiver,username)
-    ).fetchall()
+    """,(username,receiver,receiver,username)).fetchall()
 
     db.close()
 
-    return render_template(
-    "chat.html",
-    username=username,
-    receiver=receiver,
-    messages=messages
-    )
+    return render_template("chat.html",
+                           receiver=receiver,
+                           username=username,
+                           messages=messages)
 
 
 @app.route("/logout")
 
 def logout():
 
+    if "user" in session:
+
+        db=get_db()
+        c=db.cursor()
+
+        c.execute("UPDATE users SET online=0 WHERE username=?", (session["user"],))
+        db.commit()
+        db.close()
+
     session.clear()
+
     return redirect("/login")
 
 
