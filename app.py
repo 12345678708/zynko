@@ -123,7 +123,7 @@ def register():
     return render_template("register.html")
 
 
-# CHAT PAGE
+# PAGE CHAT
 
 @app.route("/chat")
 
@@ -160,7 +160,7 @@ def chat():
     )
 
 
-# SEND MESSAGE
+# ENVOYER MESSAGE
 
 @app.route("/send", methods=["POST"])
 
@@ -184,7 +184,7 @@ def send():
     return "ok"
 
 
-# GET MESSAGES (AJAX)
+# RECEVOIR MESSAGES
 
 @app.route("/messages/<friend>")
 
@@ -196,7 +196,8 @@ def messages(friend):
     c = db.cursor()
 
     msgs = c.execute(
-        """SELECT sender,message FROM messages
+        """
+        SELECT sender,message FROM messages
         WHERE (sender=? AND receiver=?)
         OR (sender=? AND receiver=?)
         """,
@@ -208,7 +209,7 @@ def messages(friend):
     return jsonify(msgs)
 
 
-# ADD FRIEND
+# AJOUT AMI
 
 @app.route("/add_friend", methods=["POST"])
 
@@ -248,7 +249,6 @@ def add_friend():
 def logout():
 
     session.clear()
-
     return redirect("/login")
 
 
