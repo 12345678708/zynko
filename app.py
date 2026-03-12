@@ -1,13 +1,10 @@
 from flask import Flask, render_template, request, redirect, session
-from flask_socketio import SocketIO, emit
 import sqlite3
 import random
 import string
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
-
-socketio = SocketIO(app)
 
 DATABASE = "zynko.db"
 
@@ -23,7 +20,7 @@ def init_db():
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
         friend_code TEXT UNIQUE
@@ -32,9 +29,8 @@ def init_db():
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS messages(
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender TEXT,
-        receiver TEXT,
         message TEXT
     )
     """)
@@ -49,8 +45,6 @@ init_db()
 def generate_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
-
-# LOGIN
 
 @app.route("/", methods=["GET","POST"])
 @app.route("/login", methods=["GET","POST"])
@@ -73,14 +67,11 @@ def login():
         db.close()
 
         if user:
-
             session["user"] = username
             return redirect("/chat")
 
     return render_template("login.html")
 
-
-# REGISTER
 
 @app.route("/register", methods=["GET","POST"])
 
@@ -118,9 +109,7 @@ def register():
     return render_template("register.html")
 
 
-# CHAT PAGE
-
-@app.route("/chat")
+@app.route("/chat", methods=["GET","POST"])
 
 def chat():
 
@@ -129,40 +118,32 @@ def chat():
 
     username = session["user"]
 
-    return render_template(
-        "chat.html",
-        username=username
-    )
-
-
-# SOCKET MESSAGE
-
-@socketio.on("send_message")
-
-def handle_message(data):
-
-    sender = session["user"]
-    receiver = data["receiver"]
-    message = data["message"]
-
     db = get_db()
     c = db.cursor()
 
-    c.execute(
-        "INSERT INTO messages(sender,receiver,message) VALUES(?,?,?)",
-        (sender,receiver,message)
-    )
+    if request.method == "POST":
 
-    db.commit()
+        message = request.form["message"]
+
+        c.execute(
+            "INSERT INTO messages(sender,message) VALUES(?,?)",
+            (username,message)
+        )
+
+        db.commit()
+
+    messages = c.execute(
+        "SELECT sender,message FROM messages"
+    ).fetchall()
+
     db.close()
 
-    emit("receive_message", {
-        "sender": sender,
-        "message": message
-    }, broadcast=True)
+    return render_template(
+        "chat.html",
+        username=username,
+        messages=messages
+    )
 
-
-# LOGOUT
 
 @app.route("/logout")
 
@@ -173,4 +154,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000)
+    app.run()
