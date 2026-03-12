@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3
 import random
 import string
@@ -8,10 +8,6 @@ app.secret_key = "zynko_secret"
 
 DATABASE = "zynko.db"
 
-
-# -----------------------------
-# DATABASE
-# -----------------------------
 
 def get_db():
     return sqlite3.connect(DATABASE)
@@ -24,7 +20,7 @@ def init_db():
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT,
         friend_code TEXT UNIQUE
@@ -32,8 +28,16 @@ def init_db():
     """)
 
     c.execute("""
+    CREATE TABLE IF NOT EXISTS friends(
+        id INTEGER PRIMARY KEY,
+        user TEXT,
+        friend TEXT
+    )
+    """)
+
+    c.execute("""
     CREATE TABLE IF NOT EXISTS messages(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY,
         sender TEXT,
         receiver TEXT,
         message TEXT
@@ -47,23 +51,14 @@ def init_db():
 init_db()
 
 
-# -----------------------------
-# GENERATE FRIEND CODE
-# -----------------------------
-
 def generate_code():
-
-    return ''.join(
-        random.choices(string.ascii_uppercase + string.digits, k=8)
-    )
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
-# -----------------------------
 # LOGIN
-# -----------------------------
 
-@app.route("/", methods=["GET", "POST"])
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
+@app.route("/login", methods=["GET","POST"])
 
 def login():
 
@@ -77,7 +72,7 @@ def login():
 
         user = c.execute(
             "SELECT * FROM users WHERE username=? AND password=?",
-            (username, password)
+            (username,password)
         ).fetchone()
 
         db.close()
@@ -90,11 +85,9 @@ def login():
     return render_template("login.html")
 
 
-# -----------------------------
 # REGISTER
-# -----------------------------
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register", methods=["GET","POST"])
 
 def register():
 
@@ -115,14 +108,12 @@ def register():
 
             c.execute(
                 "INSERT INTO users(username,password,friend_code) VALUES(?,?,?)",
-                (username, password, code)
+                (username,password,code)
             )
 
             db.commit()
 
         except:
-
-            db.close()
             return "Pseudo déjà utilisé"
 
         db.close()
@@ -132,11 +123,9 @@ def register():
     return render_template("register.html")
 
 
-# -----------------------------
-# CHAT
-# -----------------------------
+# CHAT PAGE
 
-@app.route("/chat", methods=["GET", "POST"])
+@app.route("/chat")
 
 def chat():
 
@@ -148,23 +137,9 @@ def chat():
     db = get_db()
     c = db.cursor()
 
-    if request.method == "POST":
-
-        receiver = request.form["receiver"]
-        message = request.form["message"]
-
-        if message.strip() != "":
-
-            c.execute(
-                "INSERT INTO messages(sender,receiver,message) VALUES(?,?,?)",
-                (username, receiver, message)
-            )
-
-            db.commit()
-
-    messages = c.execute(
-        "SELECT * FROM messages WHERE sender=? OR receiver=?",
-        (username, username)
+    friends = c.execute(
+        "SELECT friend FROM friends WHERE user=?",
+        (username,)
     ).fetchall()
 
     code = c.execute(
@@ -176,20 +151,97 @@ def chat():
 
     if code:
         code = code[0]
-    else:
-        code = "NONE"
 
     return render_template(
         "chat.html",
         username=username,
-        messages=messages,
+        friends=friends,
         code=code
     )
 
 
-# -----------------------------
+# SEND MESSAGE
+
+@app.route("/send", methods=["POST"])
+
+def send():
+
+    sender = session["user"]
+    receiver = request.form["receiver"]
+    message = request.form["message"]
+
+    db = get_db()
+    c = db.cursor()
+
+    c.execute(
+        "INSERT INTO messages(sender,receiver,message) VALUES(?,?,?)",
+        (sender,receiver,message)
+    )
+
+    db.commit()
+    db.close()
+
+    return "ok"
+
+
+# GET MESSAGES (AJAX)
+
+@app.route("/messages/<friend>")
+
+def messages(friend):
+
+    user = session["user"]
+
+    db = get_db()
+    c = db.cursor()
+
+    msgs = c.execute(
+        """SELECT sender,message FROM messages
+        WHERE (sender=? AND receiver=?)
+        OR (sender=? AND receiver=?)
+        """,
+        (user,friend,friend,user)
+    ).fetchall()
+
+    db.close()
+
+    return jsonify(msgs)
+
+
+# ADD FRIEND
+
+@app.route("/add_friend", methods=["POST"])
+
+def add_friend():
+
+    code = request.form["code"]
+    user = session["user"]
+
+    db = get_db()
+    c = db.cursor()
+
+    friend = c.execute(
+        "SELECT username FROM users WHERE friend_code=?",
+        (code,)
+    ).fetchone()
+
+    if friend:
+
+        friend = friend[0]
+
+        c.execute(
+            "INSERT INTO friends(user,friend) VALUES(?,?)",
+            (user,friend)
+        )
+
+        db.commit()
+
+    db.close()
+
+    return redirect("/chat")
+
+
 # LOGOUT
-# -----------------------------
 
 @app.route("/logout")
 
@@ -200,10 +252,5 @@ def logout():
     return redirect("/login")
 
 
-# -----------------------------
-# START
-# -----------------------------
-
 if __name__ == "__main__":
-
-    app.run(debug=True)
+    app.run()
