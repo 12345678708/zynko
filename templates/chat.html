@@ -9,6 +9,7 @@
 
 <link rel="stylesheet" href="/static/style.css">
 
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="/static/script.js"></script>
 
 </head>
@@ -17,81 +18,27 @@
 
 <div class="container">
 
-<div class="sidebar">
+<div class="header">
 
-<div class="logo">Zynko</div>
-
-<p>👤 {{username}}</p>
-
-<p>Code ami : {{code}}</p>
+Zynko — {{username}}
 
 <a href="/logout">Déconnexion</a>
 
-<hr>
-
-<form method="post" action="/add_friend">
-
-<input name="code" placeholder="Code ami">
-
-<button>Ajouter</button>
-
-</form>
-
-<hr>
-
-{% for f in friends %}
-
-<div class="friend" onclick="openChat('{{f[0]}}')">
-
-<img src="/static/avatar.png">
-
-{{f[0]}}
-
 </div>
-
-{% endfor %}
-
-</div>
-
-<div class="chat">
 
 <div id="messages" class="messages"></div>
 
-<form class="send" onsubmit="sendMessage(event)">
+<div class="send">
+
+<input id="receiver" placeholder="Pseudo ami">
 
 <input id="msg" placeholder="Message">
 
-<button>Envoyer</button>
-
-</form>
+<button onclick="sendMessage()">Envoyer</button>
 
 </div>
 
 </div>
-
-<script>
-
-function sendMessage(e){
-
-e.preventDefault()
-
-let msg=document.getElementById("msg").value
-
-fetch("/send",{
-
-method:"POST",
-
-headers:{"Content-Type":"application/x-www-form-urlencoded"},
-
-body:"receiver="+currentFriend+"&message="+msg
-
-})
-
-document.getElementById("msg").value=""
-
-}
-
-</script>
 
 </body>
 </html>
