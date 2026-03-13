@@ -7,10 +7,17 @@ import uuid
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
 
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ---------------- UPLOAD FOLDER ----------------
 
 UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+if not os.path.exists("static"):
+    os.makedirs("static")
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # ---------------- DATABASE ----------------
 
@@ -65,10 +72,10 @@ def login():
 
     if request.method == "POST":
 
-        email = request.form.get("email","")
-        password = request.form.get("password","")
+        email = request.form.get("email")
+        password = request.form.get("password")
 
-        if email == "" or password == "":
+        if not email or not password:
             return redirect("/")
 
         conn = db()
@@ -102,11 +109,11 @@ def register():
 
     if request.method == "POST":
 
-        username = request.form.get("username","")
-        email = request.form.get("email","")
-        password = request.form.get("password","")
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
 
-        if username == "" or email == "" or password == "":
+        if not username or not email or not password:
             return redirect("/register")
 
         code = str(uuid.uuid4())[:8]
@@ -123,8 +130,7 @@ def register():
 
             conn.commit()
 
-        except Exception as e:
-
+        except:
             conn.close()
             return "Utilisateur déjà existant"
 
@@ -134,7 +140,7 @@ def register():
 
     return render_template("register.html")
 
-# ---------------- CHAT ----------------
+# ---------------- CHAT PAGE ----------------
 
 @app.route("/chat")
 def chat():
@@ -171,7 +177,7 @@ def add_friend():
     if "user" not in session:
         return redirect("/")
 
-    code = request.form.get("code","")
+    code = request.form.get("code")
     user = session["user"]
 
     conn = db()
@@ -206,20 +212,20 @@ def upload():
     if file.filename == "":
         return jsonify({"error":"empty file"})
 
-    name = str(uuid.uuid4()) + "_" + file.filename
+    filename = str(uuid.uuid4()) + "_" + file.filename
 
-    path = os.path.join(UPLOAD_FOLDER,name)
+    path = os.path.join(UPLOAD_FOLDER, filename)
 
     file.save(path)
 
-    return jsonify({"file":name})
+    return jsonify({"file": filename})
 
-# ---------------- SOCKET ----------------
+# ---------------- SOCKET CHAT ----------------
 
 @socketio.on("send_message")
 def message(data):
 
-    emit("new_message",data,broadcast=True)
+    emit("new_message", data, broadcast=True)
 
 # ---------------- LOGOUT ----------------
 
@@ -244,4 +250,4 @@ def logout():
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=10000)
