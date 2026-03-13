@@ -1,57 +1,80 @@
 <!DOCTYPE html>
-
-<html lang="fr">
+<html>
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zynko - Inscription</title>
 
-<title>Créer un compte - Zynko</title>
+<style>
 
-<link rel="stylesheet" href="/static/style.css">
+body{
+font-family:Arial;
+background:#0f172a;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+color:white;
+}
+
+.box{
+background:#1e293b;
+padding:40px;
+border-radius:15px;
+width:300px;
+text-align:center;
+}
+
+input{
+width:100%;
+padding:10px;
+margin:10px 0;
+border-radius:8px;
+border:none;
+}
+
+button{
+width:100%;
+padding:10px;
+background:#22c55e;
+border:none;
+border-radius:8px;
+color:white;
+font-size:16px;
+cursor:pointer;
+}
+
+a{
+color:#22c55e;
+}
+
+</style>
 
 </head>
 
 <body>
 
+<div class="box">
+
 <h2>Créer un compte Zynko</h2>
 
 <form method="POST" action="/register">
 
-<input
-type="text"
-name="username"
-placeholder="Pseudo"
-maxlength="20"
-required
+<input type="text" name="username" placeholder="Pseudo" required>
 
->
+<input type="email" name="email" placeholder="Email" required>
 
-<input
-type="email"
-name="email"
-placeholder="Email"
-required
+<input type="password" name="password" placeholder="Mot de passe" required>
 
->
-
-<input
-type="password"
-name="password"
-placeholder="Mot de passe"
-required
-
->
-
-<button type="submit">
-Créer le compte
-</button>
+<button type="submit">S'inscrire</button>
 
 </form>
 
 <br>
 
-<a href="/login">Se connecter</a>
+<a href="/">Déjà un compte ?</a>
+
+</div>
 
 </body>
 </html>
