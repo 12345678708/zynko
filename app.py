@@ -1,128 +1,230 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
-from flask_socketio import SocketIO, emit, join_room, leave_room
-from werkzeug.utils import secure_filename
 import os
+import sqlite3
+import uuid
+from flask import Flask, render_template, request, redirect, session
 
 app = Flask(__name__)
-app.secret_key = "zynko_secret_key"
-socketio = SocketIO(app)
+app.secret_key = "zynko_secret"
 
 UPLOAD_FOLDER = "static/uploads"
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+DB = "zynko.db"
 
-# Stockage temporaire (remplace par DB pour prod)
-users = {}        # username -> dict {email, avatar, online, room}
-messages = {}     # room -> list of messages
 
-# --- ROUTES ---
+def db():
+    return sqlite3.connect(DB)
 
-@app.route("/")
-def home():
-    if "username" in session:
-        return redirect("/chat")
-    return redirect("/login")
 
-@app.route("/login", methods=["GET", "POST"])
+def init_db():
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        email TEXT,
+        password TEXT,
+        avatar TEXT,
+        friend_code TEXT UNIQUE
+    )
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS friends(
+        user TEXT,
+        friend TEXT
+    )
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS messages(
+        sender TEXT,
+        receiver TEXT,
+        text TEXT,
+        read INTEGER DEFAULT 0
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# ---------------- LOGIN ----------------
+
+@app.route("/", methods=["GET","POST"])
 def login():
+
     if request.method == "POST":
-        username = request.form.get("username")
-        email = request.form.get("email")
-        if not username or not email:
-            return "Email et pseudo obligatoires", 400
-        session["username"] = username
-        session["email"] = email
-        if username not in users:
-            users[username] = {"email": email, "avatar": "/static/avatar.png", "online": True, "room": username}
-            messages[username] = []
-        else:
-            users[username]["online"] = True
-        return redirect("/chat")
+
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = db()
+        c = conn.cursor()
+
+        user = c.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (username,password)
+        ).fetchone()
+
+        conn.close()
+
+        if user:
+            session["user"] = username
+            return redirect("/chat")
+
     return render_template("login.html")
+
+
+# ---------------- REGISTER ----------------
 
 @app.route("/register", methods=["GET","POST"])
 def register():
+
     if request.method == "POST":
-        username = request.form.get("username")
-        email = request.form.get("email")
-        if not username or not email:
-            return "Email et pseudo obligatoires", 400
-        session["username"] = username
-        session["email"] = email
-        if username not in users:
-            users[username] = {"email": email, "avatar": "/static/avatar.png", "online": True, "room": username}
-            messages[username] = []
-        else:
-            return "Pseudo déjà utilisé", 400
-        return redirect("/chat")
+
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
+
+        if len(username) > 20:
+            return "Pseudo trop long"
+
+        friend_code = str(uuid.uuid4())[:8]
+
+        conn = db()
+        c = conn.cursor()
+
+        try:
+
+            c.execute("""
+            INSERT INTO users(username,email,password,avatar,friend_code)
+            VALUES(?,?,?,?,?)
+            """,(username,email,password,"avatar.png",friend_code))
+
+            conn.commit()
+
+        except:
+            conn.close()
+            return "Pseudo déjà utilisé"
+
+        conn.close()
+
+        return redirect("/")
+
     return render_template("register.html")
 
-@app.route("/logout")
-def logout():
-    username = session.get("username")
-    if username in users:
-        users[username]["online"] = False
-    session.clear()
-    return redirect("/login")
+
+# ---------------- CHAT ----------------
 
 @app.route("/chat")
 def chat():
-    if "username" not in session:
-        return redirect("/login")
-    return render_template("chat.html", username=session["username"], users=users, messages=messages)
 
-# --- UPLOADS ---
-@app.route("/upload", methods=["POST"])
-def upload():
-    username = session.get("username")
-    if not username:
-        return "Non autorisé", 403
-    file = request.files.get("file")
-    if file:
-        filename = secure_filename(file.filename)
-        path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(path)
-        return jsonify({"filename": filename})
-    return "Pas de fichier", 400
+    if "user" not in session:
+        return redirect("/")
 
-# --- SOCKETIO ---
-@socketio.on("connect")
-def handle_connect():
-    username = session.get("username")
-    if username:
-        users[username]["online"] = True
-        emit("user_list", users, broadcast=True)
+    username = session["user"]
 
-@socketio.on("disconnect")
-def handle_disconnect():
-    username = session.get("username")
-    if username in users:
-        users[username]["online"] = False
-        emit("user_list", users, broadcast=True)
+    conn = db()
+    c = conn.cursor()
 
-@socketio.on("send_message")
-def handle_message(data):
-    sender = session.get("username")
-    target = data.get("target")
-    text = data.get("text")
-    img = data.get("image")
-    audio = data.get("audio")
-    if target in messages:
-        messages[target].append([sender, text, img, audio])
-        emit("new_message", {"sender": sender, "text": text, "image": img, "audio": audio}, room=target)
-        emit("notification", {"from": sender}, room=target)
+    friends = c.execute("""
+    SELECT friend FROM friends WHERE user=?
+    """,(username,)).fetchall()
 
-@socketio.on("join_room")
-def on_join(data):
-    room = data.get("room")
-    join_room(room)
+    unread = c.execute("""
+    SELECT sender,COUNT(*) FROM messages
+    WHERE receiver=? AND read=0
+    GROUP BY sender
+    """,(username,)).fetchall()
 
-@socketio.on("leave_room")
-def on_leave(data):
-    room = data.get("room")
-    leave_room(room)
+    conn.close()
+
+    return render_template(
+        "chat.html",
+        username=username,
+        friends=friends,
+        unread=dict(unread)
+    )
+
+
+# ---------------- ADD FRIEND ----------------
+
+@app.route("/add_friend", methods=["POST"])
+def add_friend():
+
+    if "user" not in session:
+        return redirect("/")
+
+    code = request.form["code"]
+    username = session["user"]
+
+    conn = db()
+    c = conn.cursor()
+
+    friend = c.execute(
+        "SELECT username FROM users WHERE friend_code=?",
+        (code,)
+    ).fetchone()
+
+    if friend:
+
+        c.execute(
+            "INSERT INTO friends(user,friend) VALUES(?,?)",
+            (username,friend[0])
+        )
+
+        conn.commit()
+
+    conn.close()
+
+    return redirect("/chat")
+
+
+# ---------------- UPLOAD AVATAR ----------------
+
+@app.route("/avatar", methods=["POST"])
+def avatar():
+
+    if "user" not in session:
+        return redirect("/")
+
+    file = request.files["avatar"]
+
+    filename = file.filename
+
+    path = os.path.join(UPLOAD_FOLDER, filename)
+
+    file.save(path)
+
+    conn = db()
+    c = conn.cursor()
+
+    c.execute(
+        "UPDATE users SET avatar=? WHERE username=?",
+        (filename,session["user"])
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/chat")
+
+
+# ---------------- LOGOUT ----------------
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect("/")
+    
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    app.run()
