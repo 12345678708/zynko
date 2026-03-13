@@ -15,7 +15,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # ---------------- DATABASE ----------------
 
 def db():
-    return sqlite3.connect("zynko.db")
+    return sqlite3.connect("zynko.db", check_same_thread=False)
 
 
 def init_db():
@@ -65,16 +65,16 @@ def login():
 
     if request.method == "POST":
 
-        email = request.form.get("email")
-        password = request.form.get("password")
+        email = request.form.get("email","")
+        password = request.form.get("password","")
 
-        if not email or not password:
-            return "Email obligatoire",400
+        if email == "" or password == "":
+            return redirect("/")
 
-        conn=db()
-        c=conn.cursor()
+        conn = db()
+        c = conn.cursor()
 
-        user=c.execute(
+        user = c.execute(
         "SELECT username FROM users WHERE email=? AND password=?",
         (email,password)).fetchone()
 
@@ -82,9 +82,9 @@ def login():
 
         if user:
 
-            session["user"]=user[0]
+            session["user"] = user[0]
 
-            conn=db()
+            conn = db()
             conn.execute(
             "UPDATE users SET online=1 WHERE username=?",
             (user[0],))
@@ -100,19 +100,19 @@ def login():
 @app.route("/register", methods=["GET","POST"])
 def register():
 
-    if request.method=="POST":
+    if request.method == "POST":
 
-        username=request.form.get("username")
-        email=request.form.get("email")
-        password=request.form.get("password")
+        username = request.form.get("username","")
+        email = request.form.get("email","")
+        password = request.form.get("password","")
 
-        if not username or not email or not password:
-            return "Tous les champs sont obligatoires",400
+        if username == "" or email == "" or password == "":
+            return redirect("/register")
 
-        code=str(uuid.uuid4())[:8]
+        code = str(uuid.uuid4())[:8]
 
-        conn=db()
-        c=conn.cursor()
+        conn = db()
+        c = conn.cursor()
 
         try:
 
@@ -123,7 +123,7 @@ def register():
 
             conn.commit()
 
-        except:
+        except Exception as e:
 
             conn.close()
             return "Utilisateur déjà existant"
@@ -142,24 +142,25 @@ def chat():
     if "user" not in session:
         return redirect("/")
 
-    username=session["user"]
+    username = session["user"]
 
-    conn=db()
-    c=conn.cursor()
+    conn = db()
+    c = conn.cursor()
 
-    users=c.execute("SELECT username,online FROM users").fetchall()
+    users = c.execute(
+    "SELECT username,online FROM users").fetchall()
 
-    friends=c.execute(
+    friends = c.execute(
     "SELECT friend FROM friends WHERE user=?",
     (username,)).fetchall()
 
     conn.close()
 
     return render_template(
-    "chat.html",
-    username=username,
-    users=users,
-    friends=friends
+        "chat.html",
+        username=username,
+        users=users,
+        friends=friends
     )
 
 # ---------------- ADD FRIEND ----------------
@@ -167,13 +168,16 @@ def chat():
 @app.route("/add_friend",methods=["POST"])
 def add_friend():
 
-    code=request.form.get("code")
-    user=session["user"]
+    if "user" not in session:
+        return redirect("/")
 
-    conn=db()
-    c=conn.cursor()
+    code = request.form.get("code","")
+    user = session["user"]
 
-    friend=c.execute(
+    conn = db()
+    c = conn.cursor()
+
+    friend = c.execute(
     "SELECT username FROM users WHERE friend_code=?",
     (code,)).fetchone()
 
@@ -194,11 +198,17 @@ def add_friend():
 @app.route("/upload",methods=["POST"])
 def upload():
 
-    file=request.files["file"]
+    if "file" not in request.files:
+        return jsonify({"error":"no file"})
 
-    name=file.filename
+    file = request.files["file"]
 
-    path=os.path.join(UPLOAD_FOLDER,name)
+    if file.filename == "":
+        return jsonify({"error":"empty file"})
+
+    name = str(uuid.uuid4()) + "_" + file.filename
+
+    path = os.path.join(UPLOAD_FOLDER,name)
 
     file.save(path)
 
@@ -216,14 +226,16 @@ def message(data):
 @app.route("/logout")
 def logout():
 
-    user=session.get("user")
+    user = session.get("user")
 
-    conn=db()
-    conn.execute(
-    "UPDATE users SET online=0 WHERE username=?",
-    (user,))
-    conn.commit()
-    conn.close()
+    if user:
+
+        conn = db()
+        conn.execute(
+        "UPDATE users SET online=0 WHERE username=?",
+        (user,))
+        conn.commit()
+        conn.close()
 
     session.clear()
 
@@ -231,5 +243,5 @@ def logout():
 
 # ---------------- RUN ----------------
 
-if __name__=="__main__":
-    socketio.run(app,debug=True)
+if __name__ == "__main__":
+    socketio.run(app,host="0.0.0.0",port=10000)
