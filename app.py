@@ -9,7 +9,7 @@ app.secret_key = "zynko_secret"
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ---------------- UPLOAD FOLDER ----------------
+# ---------------- DOSSIER UPLOAD ----------------
 
 UPLOAD_FOLDER = "static/uploads"
 
@@ -34,7 +34,6 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
-        email TEXT UNIQUE,
         password TEXT,
         avatar TEXT,
         friend_code TEXT UNIQUE,
@@ -55,8 +54,7 @@ def init_db():
         sender TEXT,
         receiver TEXT,
         text TEXT,
-        image TEXT,
-        audio TEXT
+        image TEXT
     )
     """)
 
@@ -72,18 +70,18 @@ def login():
 
     if request.method == "POST":
 
-        email = request.form.get("email")
+        username = request.form.get("username")
         password = request.form.get("password")
 
-        if not email or not password:
+        if not username or not password:
             return redirect("/")
 
         conn = db()
         c = conn.cursor()
 
         user = c.execute(
-        "SELECT username FROM users WHERE email=? AND password=?",
-        (email,password)).fetchone()
+        "SELECT username FROM users WHERE username=? AND password=?",
+        (username,password)).fetchone()
 
         conn.close()
 
@@ -110,10 +108,9 @@ def register():
     if request.method == "POST":
 
         username = request.form.get("username")
-        email = request.form.get("email")
         password = request.form.get("password")
 
-        if not username or not email or not password:
+        if not username or not password:
             return redirect("/register")
 
         code = str(uuid.uuid4())[:8]
@@ -124,15 +121,15 @@ def register():
         try:
 
             c.execute("""
-            INSERT INTO users(username,email,password,avatar,friend_code)
-            VALUES(?,?,?,?,?)
-            """,(username,email,password,"avatar.png",code))
+            INSERT INTO users(username,password,avatar,friend_code)
+            VALUES(?,?,?,?)
+            """,(username,password,"avatar.png",code))
 
             conn.commit()
 
         except:
             conn.close()
-            return "Utilisateur déjà existant"
+            return "Pseudo déjà utilisé"
 
         conn.close()
 
@@ -140,7 +137,7 @@ def register():
 
     return render_template("register.html")
 
-# ---------------- CHAT PAGE ----------------
+# ---------------- CHAT ----------------
 
 @app.route("/chat")
 def chat():
@@ -169,7 +166,7 @@ def chat():
         friends=friends
     )
 
-# ---------------- ADD FRIEND ----------------
+# ---------------- AJOUT AMI ----------------
 
 @app.route("/add_friend",methods=["POST"])
 def add_friend():
@@ -220,7 +217,7 @@ def upload():
 
     return jsonify({"file": filename})
 
-# ---------------- SOCKET CHAT ----------------
+# ---------------- CHAT SOCKET ----------------
 
 @socketio.on("send_message")
 def message(data):
