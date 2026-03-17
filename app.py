@@ -1,23 +1,16 @@
+# ZYNKO ULTIME - VERSION STABLE
+# Backend complet (Flask + SocketIO)
+
 from flask import Flask, render_template, request, redirect, session, jsonify
 from flask_socketio import SocketIO, emit
-import sqlite3
-import os
-import uuid
+import sqlite3, os, uuid
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
-
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ---------------- DOSSIER UPLOAD ----------------
-
 UPLOAD_FOLDER = "static/uploads"
-
-if not os.path.exists("static"):
-    os.makedirs("static")
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------------- DATABASE ----------------
 
@@ -26,7 +19,6 @@ def db():
 
 
 def init_db():
-
     conn = db()
     c = conn.cursor()
 
@@ -34,6 +26,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
+        email TEXT UNIQUE,
         password TEXT,
         avatar TEXT,
         friend_code TEXT UNIQUE,
@@ -54,7 +47,8 @@ def init_db():
         sender TEXT,
         receiver TEXT,
         text TEXT,
-        image TEXT
+        image TEXT,
+        audio TEXT
     )
     """)
 
@@ -63,36 +57,32 @@ def init_db():
 
 init_db()
 
-# ---------------- LOGIN ----------------
+# ---------------- AUTH ----------------
 
 @app.route("/", methods=["GET","POST"])
 def login():
-
     if request.method == "POST":
-
-        username = request.form.get("username")
+        email = request.form.get("email")
         password = request.form.get("password")
 
-        if not username or not password:
+        if not email or not password:
             return redirect("/")
 
         conn = db()
         c = conn.cursor()
 
         user = c.execute(
-        "SELECT username FROM users WHERE username=? AND password=?",
-        (username,password)).fetchone()
+            "SELECT username FROM users WHERE email=? AND password=?",
+            (email, password)
+        ).fetchone()
 
         conn.close()
 
         if user:
-
             session["user"] = user[0]
 
             conn = db()
-            conn.execute(
-            "UPDATE users SET online=1 WHERE username=?",
-            (user[0],))
+            conn.execute("UPDATE users SET online=1 WHERE username=?", (user[0],))
             conn.commit()
             conn.close()
 
@@ -100,17 +90,14 @@ def login():
 
     return render_template("login.html")
 
-# ---------------- REGISTER ----------------
-
 @app.route("/register", methods=["GET","POST"])
 def register():
-
     if request.method == "POST":
-
         username = request.form.get("username")
+        email = request.form.get("email")
         password = request.form.get("password")
 
-        if not username or not password:
+        if not username or not email or not password:
             return redirect("/register")
 
         code = str(uuid.uuid4())[:8]
@@ -119,20 +106,14 @@ def register():
         c = conn.cursor()
 
         try:
-
-            c.execute("""
-            INSERT INTO users(username,password,avatar,friend_code)
-            VALUES(?,?,?,?)
-            """,(username,password,"avatar.png",code))
-
+            c.execute("INSERT INTO users(username,email,password,avatar,friend_code) VALUES(?,?,?,?,?)",
+                      (username,email,password,"default.png",code))
             conn.commit()
-
         except:
             conn.close()
-            return "Pseudo déjà utilisé"
+            return "Erreur utilisateur"
 
         conn.close()
-
         return redirect("/")
 
     return render_template("register.html")
@@ -141,7 +122,6 @@ def register():
 
 @app.route("/chat")
 def chat():
-
     if "user" not in session:
         return redirect("/")
 
@@ -150,98 +130,67 @@ def chat():
     conn = db()
     c = conn.cursor()
 
-    users = c.execute(
-    "SELECT username,online FROM users").fetchall()
-
-    friends = c.execute(
-    "SELECT friend FROM friends WHERE user=?",
-    (username,)).fetchall()
+    users = c.execute("SELECT username,online FROM users").fetchall()
+    friends = c.execute("SELECT friend FROM friends WHERE user=?", (username,)).fetchall()
 
     conn.close()
 
-    return render_template(
-        "chat.html",
-        username=username,
-        users=users,
-        friends=friends
-    )
+    return render_template("chat.html", username=username, users=users, friends=friends)
 
-# ---------------- AJOUT AMI ----------------
+# ---------------- FRIEND ----------------
 
-@app.route("/add_friend",methods=["POST"])
+@app.route("/add_friend", methods=["POST"])
 def add_friend():
-
-    if "user" not in session:
-        return redirect("/")
-
     code = request.form.get("code")
-    user = session["user"]
+    user = session.get("user")
 
     conn = db()
     c = conn.cursor()
 
-    friend = c.execute(
-    "SELECT username FROM users WHERE friend_code=?",
-    (code,)).fetchone()
+    friend = c.execute("SELECT username FROM users WHERE friend_code=?", (code,)).fetchone()
 
     if friend:
-
-        c.execute(
-        "INSERT INTO friends(user,friend) VALUES(?,?)",
-        (user,friend[0]))
-
+        c.execute("INSERT INTO friends(user,friend) VALUES(?,?)", (user, friend[0]))
         conn.commit()
 
     conn.close()
-
     return redirect("/chat")
 
-# ---------------- UPLOAD IMAGE ----------------
+# ---------------- UPLOAD ----------------
 
-@app.route("/upload",methods=["POST"])
+@app.route("/upload", methods=["POST"])
 def upload():
+    file = request.files.get("file")
 
-    if "file" not in request.files:
-        return jsonify({"error":"no file"})
-
-    file = request.files["file"]
-
-    if file.filename == "":
-        return jsonify({"error":"empty file"})
+    if not file:
+        return jsonify({"error": "no file"})
 
     filename = str(uuid.uuid4()) + "_" + file.filename
-
     path = os.path.join(UPLOAD_FOLDER, filename)
 
     file.save(path)
 
     return jsonify({"file": filename})
 
-# ---------------- CHAT SOCKET ----------------
+# ---------------- SOCKET ----------------
 
 @socketio.on("send_message")
-def message(data):
-
+def handle_message(data):
     emit("new_message", data, broadcast=True)
 
 # ---------------- LOGOUT ----------------
 
 @app.route("/logout")
 def logout():
-
     user = session.get("user")
 
     if user:
-
         conn = db()
-        conn.execute(
-        "UPDATE users SET online=0 WHERE username=?",
-        (user,))
+        conn.execute("UPDATE users SET online=0 WHERE username=?", (user,))
         conn.commit()
         conn.close()
 
     session.clear()
-
     return redirect("/")
 
 # ---------------- RUN ----------------
