@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<title>Zynko - Inscription</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <div class="box">
-<h2>Inscription</h2>
-<form method="POST">
-<input name="username" placeholder="Pseudo" required>
-<input name="email" placeholder="Email" required>
+<h2>Créer un compte Zynko</h2>
+<form method="POST" action="/register">
+<input type="text" name="username" placeholder="Pseudo" required>
+<input type="email" name="email" placeholder="Email" required>
 <input type="password" name="password" placeholder="Mot de passe" required>
-<button>S'inscrire</button>
+<button type="submit">S'inscrire</button>
 </form>
+<br>
+<a href="/">Déjà un compte ?</a>
 </div>
 </body>
 </html>
