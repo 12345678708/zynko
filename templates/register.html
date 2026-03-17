@@ -1,80 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<meta charset="UTF-8">
-<title>Zynko - Inscription</title>
-
-<style>
-
-body{
-font-family:Arial;
-background:#0f172a;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-color:white;
-}
-
-.box{
-background:#1e293b;
-padding:40px;
-border-radius:15px;
-width:300px;
-text-align:center;
-}
-
-input{
-width:100%;
-padding:10px;
-margin:10px 0;
-border-radius:8px;
-border:none;
-}
-
-button{
-width:100%;
-padding:10px;
-background:#22c55e;
-border:none;
-border-radius:8px;
-color:white;
-font-size:16px;
-cursor:pointer;
-}
-
-a{
-color:#22c55e;
-}
-
-</style>
-
+<link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
-
 <div class="box">
-
-<h2>Créer un compte Zynko</h2>
-
-<form method="POST" action="/register">
-
-<input type="text" name="username" placeholder="Pseudo" required>
-
-<input type="email" name="email" placeholder="Email" required>
-
+<h2>Inscription</h2>
+<form method="POST">
+<input name="username" placeholder="Pseudo" required>
+<input name="email" placeholder="Email" required>
 <input type="password" name="password" placeholder="Mot de passe" required>
-
-<button type="submit">S'inscrire</button>
-
+<button>S'inscrire</button>
 </form>
-
-<br>
-
-<a href="/">Déjà un compte ?</a>
-
 </div>
-
 </body>
 </html>
