@@ -5,16 +5,23 @@ background:#0f172a;
 color:white;
 }
 
-.chat{
+.dark{
+background:#000;
+}
+
+.topbar{
 display:flex;
-flex-direction:column;
-height:100vh;
+justify-content:space-between;
+padding:10px;
+background:#1e293b;
 }
 
 #messages{
-flex:1;
+height:80vh;
 overflow:auto;
 padding:10px;
+display:flex;
+flex-direction:column;
 }
 
 .msg{
@@ -22,6 +29,7 @@ padding:10px;
 margin:5px;
 border-radius:15px;
 max-width:60%;
+word-wrap:break-word;
 }
 
 .me{
@@ -35,6 +43,9 @@ background:#1e293b;
 
 .input{
 display:flex;
+position:fixed;
+bottom:0;
+width:100%;
 }
 
 input{
@@ -46,10 +57,7 @@ button{
 padding:10px;
 }
 
-.box{
-background:#1e293b;
-padding:20px;
-width:300px;
-margin:auto;
-margin-top:100px;
+img{
+border-radius:10px;
+margin-top:5px;
 }
