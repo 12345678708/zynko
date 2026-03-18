@@ -7,18 +7,16 @@
 </head>
 <body>
 
-<div class="topbar">
-<span>{{username}}</span>
-<button onclick="toggleDark()">🌙</button>
+<div class="sidebar">
+<h3>Choisir un ami</h3>
+<input id="target" placeholder="Nom ami">
 </div>
 
 <div id="chat"></div>
 
 <div class="input">
 <input id="msg">
-<button onclick="send()">➤</button>
-<button onclick="record()">🎤</button>
-<button onclick="call()">📞</button>
+<button onclick="send()">Envoyer</button>
 </div>
 
 <script>
