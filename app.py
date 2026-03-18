@@ -7,8 +7,11 @@ app = Flask(__name__)
 app.secret_key = "secret"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-UPLOAD_FOLDER="static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+UPLOAD_FOLDER = "static/uploads"
+
+# 🔥 FIX DEFINITIF RENDER
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 def db():
     return sqlite3.connect("db.db", check_same_thread=False)
