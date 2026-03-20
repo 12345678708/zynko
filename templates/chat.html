@@ -2,30 +2,29 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<title>Zynko Chat</title>
+
 <link rel="stylesheet" href="/static/style.css">
-<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
+
 <body>
 
-<div class="sidebar">
-<h3>Choisir un ami</h3>
-<input id="target" placeholder="Nom ami">
-</div>
+<div class="chat">
 
-<div id="chat"></div>
+<h2>💬 Zynko</h2>
 
-<div class="input">
-<input id="msg">
+<div id="messages"></div>
+
+<input id="msg" placeholder="Message...">
+<input type="file" id="file">
+
 <button onclick="send()">Envoyer</button>
+
 </div>
-
-<script>
-const USER="{{username}}";
-const socket=io();
-
-socket.emit("join", USER);
-</script>
 
 <script src="/static/script.js"></script>
+
 </body>
 </html>
