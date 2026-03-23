@@ -1,24 +1,14 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 import sqlite3
 import uuid
-import cloudinary
-import cloudinary.uploader
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret"
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ---------------- CLOUDINARY ----------------
-
-cloudinary.config(
-    cloud_name="TON_CLOUD_NAME",
-    api_key="TON_API_KEY",
-    api_secret="TON_API_SECRET"
-)
-
-# ---------------- DATABASE ----------------
+# ---------------- DB ----------------
 
 def db():
     return sqlite3.connect("zynko.db")
@@ -29,21 +19,18 @@ def init_db():
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY,
         username TEXT UNIQUE,
-        email TEXT UNIQUE,
+        email TEXT,
         password TEXT,
-        friend_code TEXT UNIQUE,
+        friend_code TEXT,
         online INTEGER DEFAULT 0
     )
     """)
 
     c.execute("""
-    CREATE TABLE IF NOT EXISTS messages(
+    CREATE TABLE IF NOT EXISTS groups(
         id INTEGER PRIMARY KEY,
-        sender TEXT,
-        text TEXT,
-        image TEXT
+        name TEXT
     )
     """)
 
@@ -60,21 +47,15 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        if not email or not password:
-            return "Email obligatoire", 400
-
         conn = db()
-        c = conn.cursor()
-
-        user = c.execute(
+        user = conn.execute(
             "SELECT username FROM users WHERE email=? AND password=?",
-            (email, password)
+            (email,password)
         ).fetchone()
-
         conn.close()
 
         if user:
-            session["user"] = user[0]
+            session["user"]=user[0]
             return redirect("/chat")
 
     return render_template("login.html")
@@ -84,28 +65,27 @@ def login():
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username")
-        email = request.form.get("email")
-        password = request.form.get("password")
+
+        username=request.form.get("username")
+        email=request.form.get("email")
+        password=request.form.get("password")
 
         if not username or not email or not password:
-            return "Champs manquants", 400
+            return "Erreur champs",400
 
-        code = str(uuid.uuid4())[:8]
-
-        conn = db()
-        c = conn.cursor()
+        code=str(uuid.uuid4())[:8]
 
         try:
-            c.execute(
-                "INSERT INTO users(username,email,password,friend_code) VALUES(?,?,?,?)",
+            conn=db()
+            conn.execute(
+                "INSERT INTO users VALUES(?,?,?,?,0)",
                 (username,email,password,code)
             )
             conn.commit()
+            conn.close()
         except:
-            return "Utilisateur existe déjà"
+            return "Utilisateur existe"
 
-        conn.close()
         return redirect("/")
 
     return render_template("register.html")
@@ -116,35 +96,30 @@ def register():
 def chat():
     if "user" not in session:
         return redirect("/")
-
     return render_template("chat.html", user=session["user"])
 
-# ---------------- UPLOAD IMAGE ----------------
+# ---------------- GROUP ----------------
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    file = request.files["file"]
+@app.route("/create_group", methods=["POST"])
+def create_group():
+    name = request.json.get("name")
 
-    if not file:
-        return "No file", 400
+    conn=db()
+    conn.execute("INSERT INTO groups(name) VALUES(?)",(name,))
+    conn.commit()
+    conn.close()
 
-    result = cloudinary.uploader.upload(file)
-
-    return jsonify({"url": result["secure_url"]})
+    return "ok"
 
 # ---------------- SOCKET ----------------
 
-@socketio.on("send_message")
-def handle_message(data):
+@socketio.on("join")
+def join(data):
+    join_room(data["room"])
 
-    emit("receive_message", data, broadcast=True)
-
-# ---------------- LOGOUT ----------------
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
+@socketio.on("send")
+def send(data):
+    emit("msg", data, to=data["room"])
 
 # ---------------- RUN ----------------
 
