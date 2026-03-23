@@ -2,25 +2,38 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Zynko Chat</title>
+<title>Zynko</title>
 
 <link rel="stylesheet" href="/static/style.css">
-
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 
 <body>
 
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<h2>Zynko</h2>
+
+<button onclick="newGroup()">➕ Groupe</button>
+
+<div id="rooms"></div>
+</div>
+
+<!-- CHAT -->
 <div class="chat">
 
-<h2>💬 Zynko</h2>
+<div id="header">Choisis une discussion</div>
 
 <div id="messages"></div>
 
+<div class="input">
 <input id="msg" placeholder="Message...">
-<input type="file" id="file">
+<button onclick="send()">➤</button>
+</div>
 
-<button onclick="send()">Envoyer</button>
+</div>
 
 </div>
 
