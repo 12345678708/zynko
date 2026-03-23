@@ -1,33 +1,71 @@
 body{
-background:#0f172a;
-color:white;
+margin:0;
 font-family:Arial;
+background:#111b21;
+}
+
+.app{
 display:flex;
-justify-content:center;
-align-items:center;
 height:100vh;
 }
 
+/* SIDEBAR */
+.sidebar{
+width:30%;
+background:#202c33;
+color:white;
+padding:10px;
+overflow:auto;
+}
+
+/* CHAT */
 .chat{
-background:#1e293b;
-padding:20px;
-border-radius:15px;
-width:300px;
+width:70%;
+display:flex;
+flex-direction:column;
+}
+
+#header{
+background:#202c33;
+color:white;
+padding:15px;
 }
 
 #messages{
-height:300px;
-overflow:auto;
-background:#020617;
-margin-bottom:10px;
+flex:1;
+background:#0b141a;
 padding:10px;
-border-radius:10px;
+overflow:auto;
 }
 
-input,button{
-width:100%;
-margin:5px 0;
+/* BULLES */
+.bubble{
+background:#005c4b;
+color:white;
+padding:10px;
+margin:5px;
+border-radius:10px;
+max-width:60%;
+}
+
+/* INPUT */
+.input{
+display:flex;
+background:#202c33;
+padding:10px;
+}
+
+input{
+flex:1;
 padding:10px;
 border:none;
-border-radius:8px;
+border-radius:20px;
+}
+
+button{
+margin-left:5px;
+padding:10px;
+border:none;
+border-radius:10px;
+cursor:pointer;
 }
