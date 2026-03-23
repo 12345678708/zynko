@@ -1,49 +1,47 @@
 const socket = io();
 
-function send() {
+let room = null;
 
-    let msg = document.getElementById("msg").value;
-    let file = document.getElementById("file").files[0];
+function newGroup(){
+    let name = prompt("Nom du groupe");
 
-    if (file) {
+    fetch("/create_group",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:name})
+    });
 
-        let formData = new FormData();
-        formData.append("file", file);
-
-        fetch("/upload", {
-            method: "POST",
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-
-            socket.emit("send_message", {
-                text: msg,
-                image: data.url
-            });
-
-        });
-
-    } else {
-
-        socket.emit("send_message", {
-            text: msg
-        });
-
-    }
-
-    document.getElementById("msg").value = "";
+    addRoom(name);
 }
 
-socket.on("receive_message", function(data) {
-
+function addRoom(name){
     let div = document.createElement("div");
+    div.innerText = name;
+    div.onclick = () => joinRoom(name);
+    document.getElementById("rooms").appendChild(div);
+}
 
-    if (data.image) {
-        div.innerHTML = `<p>${data.text}</p><img src="${data.image}" width="150">`;
-    } else {
-        div.innerText = data.text;
-    }
+function joinRoom(name){
+    room = name;
+    document.getElementById("header").innerText = name;
+    socket.emit("join",{room:name});
+}
+
+function send(){
+    let msg = document.getElementById("msg").value;
+
+    socket.emit("send",{
+        room:room,
+        text:msg
+    });
+
+    document.getElementById("msg").value="";
+}
+
+socket.on("msg",(data)=>{
+    let div = document.createElement("div");
+    div.className="bubble";
+    div.innerText=data.text;
 
     document.getElementById("messages").appendChild(div);
 });
