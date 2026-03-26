@@ -2,45 +2,53 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Zynko</title>
+<title>Zynko Chat</title>
 
 <link rel="stylesheet" href="/static/style.css">
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
 </head>
 
 <body>
 
 <div class="app">
 
-<div class="sidebar">
-<h2>Zynko</h2>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>Zynko 💬</h2>
 
-<button onclick="createRoom()">➕ Chat</button>
+        <input placeholder="🔍 Rechercher..." class="search">
 
-<div id="rooms"></div>
+        <div id="friends">
+            {% for u in users %}
+                <div class="friend" onclick="selectUser('{{u[0]}}')">
+                    {{u[0]}}
+                    {% if u[1] == 1 %}
+                        <span class="online"></span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="chat">
+
+        <div class="chat-header">
+            <span id="chatWith">Choisir un ami</span>
+        </div>
+
+        <div id="messages" class="messages"></div>
+
+        <div class="input-zone">
+            <input id="msg" placeholder="Message..." onkeydown="handleKey(event)">
+            <button onclick="send()">Envoyer</button>
+        </div>
+
+    </div>
+
 </div>
 
-<div class="chat">
-
-<div id="header">Discussion</div>
-
-<div id="messages"></div>
-
-<div class="input">
-
-<input id="msg" placeholder="Message...">
-
-<input type="file" id="file">
-
-<button onclick="send()">➤</button>
-<button onclick="record()">🎤</button>
-
-</div>
-
-</div>
-
-</div>
-
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="/static/script.js"></script>
 
 </body>
