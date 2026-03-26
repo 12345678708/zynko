@@ -120,14 +120,22 @@ def upload():
 
 # -------- SOCKET --------
 
-@socketio.on("join")
-def join(data):
-    join_room(data["room"])
+@socketio.on("send_message")
+def message(data):
 
-@socketio.on("send")
-def send(data):
-    emit("msg", data, to=data["room"])
+    user = session.get("user")
 
+    emit("new_message", {
+        "text": data["text"],
+        "to": data["to"],
+        "me": True
+    }, room=request.sid)
+
+    emit("new_message", {
+        "text": data["text"],
+        "to": data["to"],
+        "me": False
+    }, broadcast=True, include_self=False)
 # -------- LOGOUT --------
 
 @app.route("/logout")
