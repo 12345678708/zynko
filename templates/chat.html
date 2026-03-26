@@ -12,25 +12,29 @@
 
 <div class="app">
 
-<!-- SIDEBAR -->
 <div class="sidebar">
 <h2>Zynko</h2>
 
-<button onclick="newGroup()">➕ Groupe</button>
+<button onclick="createRoom()">➕ Chat</button>
 
 <div id="rooms"></div>
 </div>
 
-<!-- CHAT -->
 <div class="chat">
 
-<div id="header">Choisis une discussion</div>
+<div id="header">Discussion</div>
 
 <div id="messages"></div>
 
 <div class="input">
+
 <input id="msg" placeholder="Message...">
+
+<input type="file" id="file">
+
 <button onclick="send()">➤</button>
+<button onclick="record()">🎤</button>
+
 </div>
 
 </div>
