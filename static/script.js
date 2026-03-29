@@ -1,48 +1,27 @@
-var socket = io();
+let socket = io();
 
-let currentUser = null;
+let user = prompt("Pseudo");
 
-function selectUser(user){
-    currentUser = user;
-    document.getElementById("chatWith").innerText = user;
-    document.getElementById("messages").innerHTML = "";
-}
+socket.emit("join", {user:user});
 
 function send(){
-    let input = document.getElementById("msg");
-    let text = input.value;
+    let msg = document.getElementById("msg").value;
 
-    if(!text || !currentUser) return;
-
-    socket.emit("send_message", {
-        text: text,
-        to: currentUser
+    socket.emit("message", {
+        user:user,
+        text:msg
     });
 
-    input.value="";
+    document.getElementById("msg").value="";
 }
 
-function handleKey(e){
-    if(e.key === "Enter"){
-        send();
-    }
-}
-
-socket.on("new_message", function(data){
-
-    if(data.to !== currentUser) return;
-
-    let box = document.getElementById("messages");
-
+socket.on("message", data=>{
     let div = document.createElement("div");
     div.className = "msg";
 
-    if(data.me){
-        div.classList.add("me");
-    }
+    if(data.user === user) div.classList.add("me");
 
-    div.innerText = data.text;
+    div.innerText = data.user + " : " + data.text;
 
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+    document.getElementById("chat").appendChild(div);
 });
