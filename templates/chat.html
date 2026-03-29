@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
 <div id="chat"></div>
 
-<input id="msg" placeholder="message...">
-<button onclick="send()">Envoyer</button>
-
-<p id="typing"></p>
+<input id="msg">
+<button onclick="send()">➤</button>
+<button onclick="record()">🎤</button>
+<input type="file" id="img">
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="/static/script.js"></script>
+<script src="/static/webrtc.js"></script>
+<script src="/static/recorder.js"></script>
+
 <script>
 let socket = io()
-
-socket.emit("join", {user: "{{user}}"})
+socket.emit("join",{user:"{{user}}"})
 
 function send(){
-    let m = document.getElementById("msg").value
-    socket.emit("message", {user:"{{user}}", msg:m})
+    socket.emit("message",{user:"{{user}}",msg:msg.value})
 }
 
-socket.on("message", data=>{
-    document.getElementById("chat").innerHTML += `<p><b>${data.user}</b>: ${data.msg}</p>`
-})
-
-document.getElementById("msg").addEventListener("input", ()=>{
-    socket.emit("typing", {user:"{{user}}"})
-})
-
-socket.on("typing", data=>{
-    document.getElementById("typing").innerText = data.user+" écrit..."
-})
+img.onchange = ()=>{
+    let file = img.files[0]
+    let reader = new FileReader()
+    reader.onload = ()=>{
+        socket.emit("image",{user:"{{user}}",img:reader.result})
+    }
+    reader.readAsDataURL(file)
+}
 </script>
 
 </body>
