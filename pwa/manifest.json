@@ -1,15 +1,7 @@
 {
-  "name": "Chat Pro",
+  "name": "Chat Ultimate",
   "short_name": "Chat",
-  "start_url": "/",
   "display": "standalone",
-  "background_color": "#000",
-  "theme_color": "#25D366",
-  "icons": [
-    {
-      "src": "/static/avatar.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    }
-  ]
+  "start_url": "/",
+  "theme_color": "#25D366"
 }
