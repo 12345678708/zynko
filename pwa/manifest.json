@@ -1,7 +1,9 @@
 {
-  "name": "Chat Ultimate",
+  "name": "Chat App",
   "short_name": "Chat",
-  "display": "standalone",
   "start_url": "/",
-  "theme_color": "#25D366"
+  "display": "standalone",
+  "background_color": "#000",
+  "theme_color": "#25D366",
+  "icons": []
 }
