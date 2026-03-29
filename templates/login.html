@@ -1,20 +1,16 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8">
-<title>Zynko - Connexion</title>
-<link rel="stylesheet" href="/static/style.css">
-</head>
 <body>
-<div class="box">
-<h2>Connexion Zynko</h2>
-<form method="POST" action="/">
-<input type="email" name="email" placeholder="Email" required>
-<input type="password" name="password" placeholder="Mot de passe" required>
-<button type="submit">Se connecter</button>
+
+<h2>Login</h2>
+
+<form method="POST">
+<input name="username" placeholder="Pseudo">
+<input name="password" type="password" placeholder="Mot de passe">
+<button>Connexion</button>
 </form>
-<br>
-<a href="/register">Pas de compte ? Inscription</a>
-</div>
+
+<a href="/register">Créer un compte</a>
+
 </body>
 </html>
