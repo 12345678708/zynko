@@ -1,41 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-<div id="chat"></div>
+<div id="chat" class="chat-box"></div>
 
-<input id="msg">
-<button onclick="send()">➤</button>
-<button onclick="record()">🎤</button>
-<input type="file" id="img">
+<input id="msg" placeholder="Message">
+<button onclick="send()">Envoyer</button>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="/static/script.js"></script>
-<script src="/static/webrtc.js"></script>
-<script src="/static/recorder.js"></script>
-
-<script>
-let socket = io()
-socket.emit("join",{user:"{{user}}"})
-
-function send(){
-    socket.emit("message",{user:"{{user}}",msg:msg.value})
-}
-
-img.onchange = ()=>{
-    let file = img.files[0]
-    let reader = new FileReader()
-    reader.onload = ()=>{
-        socket.emit("image",{user:"{{user}}",img:reader.result})
-    }
-    reader.readAsDataURL(file)
-}
-</script>
 
 </body>
 </html>
