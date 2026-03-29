@@ -1,55 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Zynko Chat</title>
-
+<title>Chat</title>
 <link rel="stylesheet" href="/static/style.css">
-
 </head>
-
 <body>
 
-<div class="app">
+<div id="chat"></div>
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <h2>Zynko 💬</h2>
+<input id="msg" placeholder="message...">
+<button onclick="send()">Envoyer</button>
 
-        <input placeholder="🔍 Rechercher..." class="search">
-
-        <div id="friends">
-            {% for u in users %}
-                <div class="friend" onclick="selectUser('{{u[0]}}')">
-                    {{u[0]}}
-                    {% if u[1] == 1 %}
-                        <span class="online"></span>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- CHAT -->
-    <div class="chat">
-
-        <div class="chat-header">
-            <span id="chatWith">Choisir un ami</span>
-        </div>
-
-        <div id="messages" class="messages"></div>
-
-        <div class="input-zone">
-            <input id="msg" placeholder="Message..." onkeydown="handleKey(event)">
-            <button onclick="send()">Envoyer</button>
-        </div>
-
-    </div>
-
-</div>
+<p id="typing"></p>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="/static/script.js"></script>
+<script>
+let socket = io()
+
+socket.emit("join", {user: "{{user}}"})
+
+function send(){
+    let m = document.getElementById("msg").value
+    socket.emit("message", {user:"{{user}}", msg:m})
+}
+
+socket.on("message", data=>{
+    document.getElementById("chat").innerHTML += `<p><b>${data.user}</b>: ${data.msg}</p>`
+})
+
+document.getElementById("msg").addEventListener("input", ()=>{
+    socket.emit("typing", {user:"{{user}}"})
+})
+
+socket.on("typing", data=>{
+    document.getElementById("typing").innerText = data.user+" écrit..."
+})
+</script>
 
 </body>
 </html>
