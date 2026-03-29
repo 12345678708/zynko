@@ -1,3 +1,0 @@
-# zynko
-flask
-gunicorn
