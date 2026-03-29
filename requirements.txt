@@ -1,3 +1,4 @@
-cloudinary
+flask
 flask-socketio
 eventlet
+gunicorn
