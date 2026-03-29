@@ -1,25 +1,27 @@
-from flask import Flask, render_template, request, session, redirect
-from flask_socketio import SocketIO, emit, join_room
-import sqlite3, uuid
+from flask import Flask, render_template, request, redirect, session, jsonify
+from flask_socketio import SocketIO, emit
+import sqlite3, os
 
 app = Flask(__name__)
 app.secret_key = "secret"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+UPLOAD_FOLDER = "static/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ================= DB =================
 def db():
     return sqlite3.connect("database.db")
 
 def init():
     conn = db()
     c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT, password TEXT, code TEXT)")
-    c.execute("CREATE TABLE IF NOT EXISTS friends(user TEXT, friend TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, email TEXT, password TEXT)")
     conn.commit()
+
 init()
 
-users_online = {}
-
-# ================= ROUTES
+# ================= ROUTES =================
 @app.route("/")
 def home():
     if "user" not in session:
@@ -29,10 +31,13 @@ def home():
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
-        u = request.form["u"]
-        p = request.form["p"]
-        c = db().cursor()
+        u = request.form["username"]
+        p = request.form["password"]
+
+        conn = db()
+        c = conn.cursor()
         c.execute("SELECT * FROM users WHERE username=? AND password=?", (u,p))
+
         if c.fetchone():
             session["user"] = u
             return redirect("/")
@@ -41,52 +46,35 @@ def login():
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
-        u = request.form["u"]
-        p = request.form["p"]
-        code = str(uuid.uuid4())[:6]
+        u = request.form["username"]
+        e = request.form["email"]
+        p = request.form["password"]
+
         conn = db()
-        conn.execute("INSERT INTO users(username,password,code) VALUES(?,?,?)",(u,p,code))
+        c = conn.cursor()
+        c.execute("INSERT INTO users (username,email,password) VALUES (?,?,?)",(u,e,p))
         conn.commit()
+
         return redirect("/login")
     return render_template("register.html")
 
-# ================= SOCKET
-
-@socketio.on("join")
-def join(data):
-    user = data["user"]
-    users_online[user] = True
-    emit("online", list(users_online.keys()), broadcast=True)
-
+# ================= SOCKET =================
 @socketio.on("message")
-def msg(data):
+def handle_message(data):
     emit("message", data, broadcast=True)
 
 @socketio.on("typing")
 def typing(data):
     emit("typing", data, broadcast=True)
 
-@socketio.on("image")
-def image(data):
-    emit("image", data, broadcast=True)
+# ================= IMAGE UPLOAD =================
+@app.route("/upload", methods=["POST"])
+def upload():
+    file = request.files["file"]
+    path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(path)
+    return jsonify({"file": file.filename})
 
-@socketio.on("voice")
-def voice(data):
-    emit("voice", data, broadcast=True)
-
-# ================= CALL SIGNALING (WebRTC)
-
-@socketio.on("call")
-def call(data):
-    emit("call", data, broadcast=True)
-
-@socketio.on("signal")
-def signal(data):
-    emit("signal", data, broadcast=True)
-
-@socketio.on("disconnect")
-def leave():
-    pass
-
+# ================= RUN =================
 if __name__ == "__main__":
-    socketio.run(app)
+    socketio.run(app, debug=True)
