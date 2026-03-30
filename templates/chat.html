@@ -7,10 +7,22 @@
 
 <body>
 
+<h3>Chat</h3>
+
 <div id="chat" class="chat-box"></div>
 
 <input id="msg" placeholder="Message">
 <button onclick="send()">Envoyer</button>
+
+<br><br>
+
+<input type="file" id="img">
+<button onclick="sendImage()">📸 Envoyer image</button>
+
+<br><br>
+
+<button onclick="startRecording()">🎤 Start</button>
+<button onclick="stopRecording()">⏹ Stop</button>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="/static/script.js"></script>
