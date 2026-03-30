@@ -25,3 +25,33 @@ socket.on("message", data=>{
 
     document.getElementById("chat").appendChild(div);
 });
+let mediaRecorder;
+let audioChunks = [];
+
+async function startRecording(){
+    let stream = await navigator.mediaDevices.getUserMedia({audio:true});
+
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = e=>{
+        audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = ()=>{
+        let blob = new Blob(audioChunks, {type:"audio/webm"});
+        let url = URL.createObjectURL(blob);
+
+        socket.emit("message", {
+            user:user,
+            audio:url
+        });
+
+        audioChunks = [];
+    };
+
+    mediaRecorder.start();
+}
+
+function stopRecording(){
+    mediaRecorder.stop();
+}
