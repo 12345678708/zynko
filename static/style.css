@@ -1,30 +1,33 @@
-body {
+body{
     margin:0;
-    font-family: Arial;
-    background:#111;
+    background:#0b141a;
     color:white;
+    font-family:Arial;
 }
 
-.chat-box {
-    height:80vh;
-    overflow-y:auto;
+.chat{
+    height:85vh;
+    overflow:auto;
     padding:10px;
 }
 
-.msg {
+.msg{
     padding:10px;
     margin:5px;
-    background:#222;
     border-radius:10px;
-    max-width:60%;
+    max-width:70%;
+    background:#202c33;
 }
 
-.me {
-    background:#25D366;
+.me{
+    background:#005c4b;
     margin-left:auto;
 }
 
-input, button {
+.input{
+    position:fixed;
+    bottom:0;
+    width:100%;
+    background:#202c33;
     padding:10px;
-    margin:5px;
 }
