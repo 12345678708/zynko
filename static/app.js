@@ -1,95 +1,94 @@
-let socket = io();
-let user = "User" + Math.floor(Math.random()*1000);
+const socket = io();
+let username = prompt("Pseudo ?");
 
-socket.emit("connect_user", {user:user});
+socket.emit("join", {username});
 
-// ===== MESSAGE =====
+// ================= MESSAGE
 function send(){
-    let txt = document.getElementById("msg").value;
-
-    socket.emit("send_message", {
-        user:user,
-        text:txt
+    let input = document.getElementById("msg");
+    socket.emit("message", {
+        user: username,
+        text: input.value
     });
-
-    document.getElementById("msg").value="";
+    input.value="";
 }
 
-// ===== RECEIVE =====
-socket.on("new_message", data=>{
+// ================= RECEVOIR
+socket.on("message", data=>{
     let div = document.createElement("div");
-    div.className = "msg";
-
-    if(data.user === user) div.classList.add("me");
-
-    if(data.text){
-        div.innerText = data.user + ": " + data.text;
-    }
-
-    if(data.image){
-        div.innerHTML = `<img src="/static/uploads/${data.image}" width="150">`;
-    }
-
-    if(data.audio){
-        div.innerHTML = `<audio controls src="/static/uploads/${data.audio}"></audio>`;
-    }
-
-    document.getElementById("chat").appendChild(div);
+    div.className="msg";
+    div.innerHTML = "<b>"+data.user+"</b>: "+data.text;
+    document.getElementById("messages").appendChild(div);
 });
 
-// ===== IMAGE =====
-function sendImage(){
-    let file = document.getElementById("img").files[0];
-    let form = new FormData();
-    form.append("file", file);
+// ================= USER COUNT
+socket.on("user_count", n=>{
+    document.getElementById("users").innerText="👥 "+n;
+});
 
-    fetch("/upload", {method:"POST", body:form})
-    .then(r=>r.json())
-    .then(d=>{
-        socket.emit("send_message", {
-            user:user,
-            image:d.file
-        });
+// ================= TYPING
+document.getElementById("msg").addEventListener("input", ()=>{
+    socket.emit("typing", username);
+});
+
+socket.on("typing", user=>{
+    document.getElementById("typing").innerText = user+" écrit...";
+});
+
+// ================= VOCAUX
+let mediaRecorder;
+let audioChunks=[];
+
+function startRecording(){
+    navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.start();
+
+        mediaRecorder.ondataavailable = e=>{
+            audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = ()=>{
+            let blob = new Blob(audioChunks);
+            let form = new FormData();
+            form.append("file", blob, "audio.webm");
+
+            fetch("/upload", {method:"POST", body:form})
+            .then(r=>r.json())
+            .then(res=>{
+                socket.emit("message", {
+                    user: username,
+                    text: `<audio controls src="${res.url}"></audio>`
+                });
+            });
+
+            audioChunks=[];
+        };
+
+        setTimeout(()=>mediaRecorder.stop(), 3000);
     });
 }
 
-// ===== AUDIO =====
-let recorder;
-async function startAudio(){
-    let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    recorder = new MediaRecorder(stream);
-    recorder.start();
+// ================= IMAGE
+function sendImage(){
+    let input = document.createElement("input");
+    input.type="file";
 
-    recorder.ondataavailable = async e=>{
-        let blob = e.data;
-
+    input.onchange = ()=>{
+        let file = input.files[0];
         let form = new FormData();
-        form.append("audio", blob, "audio.webm");
+        form.append("file", file);
 
-        let res = await fetch("/upload_audio", {method:"POST", body:form});
-        let data = await res.json();
-
-        socket.emit("send_message", {
-            user:user,
-            audio:data.audio
+        fetch("/upload", {method:"POST", body:form})
+        .then(r=>r.json())
+        .then(res=>{
+            socket.emit("message", {
+                user: username,
+                text: `<img src="${res.url}" width="200">`
+            });
         });
     };
-}
 
-function stopAudio(){
-    recorder.stop();
-}
-
-// ===== TYPING =====
-function typing(){
-    socket.emit("typing", {user:user});
-}
-
-function stopTyping(){
-    socket.emit("stop_typing", {user:user});
-}
-
-// ===== NOTIFICATION =====
-if("Notification" in window){
-    Notification.requestPermission();
+    input.click();
 }
