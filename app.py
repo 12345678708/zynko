@@ -1,104 +1,59 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, send_from_directory
 from flask_socketio import SocketIO, emit
-import os, sqlite3, random
+import os
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-UPLOAD = "static/uploads"
-os.makedirs(UPLOAD, exist_ok=True)
+users = {}
 
-# ===== DATABASE =====
-def db():
-    return sqlite3.connect("database.db")
+# =====================
+# ROUTES
+# =====================
+@app.route('/')
+def index():
+    return render_template("index.html")
 
-def init():
-    c = db().cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, code TEXT)")
-    db().commit()
-
-init()
-
-# ===== ROUTE =====
-@app.route("/")
-def home():
-    return render_template("chat.html")
-
-# ===== UPLOAD IMAGE =====
-@app.route("/upload", methods=["POST"])
+@app.route('/upload', methods=['POST'])
 def upload():
-    f = request.files["file"]
-    path = os.path.join(UPLOAD, f.filename)
-    f.save(path)
-    return jsonify({"file": f.filename})
+    file = request.files['file']
+    path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(path)
+    return {"url": "/uploads/" + file.filename}
 
-# ===== UPLOAD AUDIO =====
-@app.route("/upload_audio", methods=["POST"])
-def upload_audio():
-    audio = request.files["audio"]
-    path = os.path.join(UPLOAD, audio.filename)
-    audio.save(path)
-    return jsonify({"audio": audio.filename})
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ===== USERS =====
-@app.route("/create_user", methods=["POST"])
-def create_user():
-    name = request.json["name"]
-    code = str(random.randint(100000,999999))
+# =====================
+# SOCKET
+# =====================
+@socketio.on('connect')
+def connect():
+    print("User connected")
 
-    conn = db()
-    c = conn.cursor()
-    c.execute("INSERT INTO users (name,code) VALUES (?,?)",(name,code))
-    conn.commit()
-
-    return jsonify({"code":code})
-
-# ===== SOCKET =====
-users_online = {}
-typing_users = set()
-
-@socketio.on("connect_user")
-def connect(data):
-    users_online[data["user"]] = request.sid
-    emit("online", list(users_online.keys()), broadcast=True)
-
-@socketio.on("send_message")
-def message(data):
-    emit("new_message", data, broadcast=True)
-
-@socketio.on("typing")
-def typing(data):
-    typing_users.add(data["user"])
-    emit("typing", list(typing_users), broadcast=True)
-
-@socketio.on("stop_typing")
-def stop(data):
-    typing_users.discard(data["user"])
-    emit("typing", list(typing_users), broadcast=True)
-
-# ===== GROUPES =====
-@socketio.on("join_group")
+@socketio.on('join')
 def join(data):
-    emit("group_joined", data, broadcast=True)
+    users[request.sid] = data['username']
+    emit('user_count', len(users), broadcast=True)
 
-@socketio.on("group_message")
-def group_msg(data):
-    emit("new_message", data, broadcast=True)
+@socketio.on('message')
+def message(data):
+    emit('message', data, broadcast=True)
 
-# ===== REACTIONS =====
-@socketio.on("react")
-def react(data):
-    emit("reaction", data, broadcast=True)
+@socketio.on('typing')
+def typing(data):
+    emit('typing', data, broadcast=True)
 
-# ===== CALL =====
-@socketio.on("call")
-def call(data):
-    emit("call", data, broadcast=True)
+@socketio.on('disconnect')
+def disconnect():
+    users.pop(request.sid, None)
+    emit('user_count', len(users), broadcast=True)
 
-@socketio.on("answer")
-def answer(data):
-    emit("answer", data, broadcast=True)
-
-# ===== RUN =====
+# =====================
+# LANCEMENT
+# =====================
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
