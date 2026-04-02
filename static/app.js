@@ -1,89 +1,62 @@
 let socket = io();
-let user = prompt("Ton pseudo");
+let user = "User" + Math.floor(Math.random()*1000);
 
-socket.emit("join", {user:user});
+socket.emit("connect_user", {user:user});
 
-// ===== ENVOI TEXTE =====
+// ===== MESSAGE =====
 function send(){
-    let msg = document.getElementById("msg").value;
+    let txt = document.getElementById("msg").value;
 
-    socket.emit("message", {
+    socket.emit("send_message", {
         user:user,
-        text:msg
+        text:txt
     });
 
     document.getElementById("msg").value="";
 }
 
-// ===== AFFICHAGE =====
-socket.on("message", data=>{
+// ===== RECEIVE =====
+socket.on("new_message", data=>{
     let div = document.createElement("div");
     div.className = "msg";
 
     if(data.user === user) div.classList.add("me");
 
     if(data.text){
-        div.innerText = data.user + " : " + data.text;
+        div.innerText = data.user + ": " + data.text;
     }
 
     if(data.image){
-        div.innerHTML = `<b>${data.user}</b><br><img src="/static/uploads/${data.image}" width="150">`;
-    }
-
-    if(data.audio){
-        div.innerHTML = `<b>${data.user}</b><br><audio controls src="${data.audio}"></audio>`;
+        div.innerHTML = `<img src="/static/uploads/${data.image}" width="150">`;
     }
 
     document.getElementById("chat").appendChild(div);
 });
 
+// ===== TYPING =====
+function typing(){
+    socket.emit("typing", {user:user});
+}
+
+function stopTyping(){
+    socket.emit("stop_typing", {user:user});
+}
+
 // ===== IMAGE =====
 function sendImage(){
     let file = document.getElementById("img").files[0];
-
-    let formData = new FormData();
-    formData.append("file", file);
+    let form = new FormData();
+    form.append("file", file);
 
     fetch("/upload", {
         method:"POST",
-        body:formData
+        body:form
     })
-    .then(res=>res.json())
-    .then(data=>{
-        socket.emit("message", {
+    .then(r=>r.json())
+    .then(d=>{
+        socket.emit("send_message", {
             user:user,
-            image:data.file
+            image:d.file
         });
     });
-}
-
-// ===== VOCAL =====
-let mediaRecorder;
-let audioChunks = [];
-
-async function startRecording(){
-    let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    mediaRecorder = new MediaRecorder(stream);
-
-    mediaRecorder.ondataavailable = e=>{
-        audioChunks.push(e.data);
-    };
-
-    mediaRecorder.onstop = ()=>{
-        let blob = new Blob(audioChunks, {type:"audio/webm"});
-        let url = URL.createObjectURL(blob);
-
-        socket.emit("message", {
-            user:user,
-            audio:url
-        });
-
-        audioChunks = [];
-    };
-
-    mediaRecorder.start();
-}
-
-function stopRecording(){
-    mediaRecorder.stop();
 }
