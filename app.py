@@ -22,42 +22,20 @@ def init():
 init()
 
 # ===== ROUTES =====
-@app.route("/")
-def home():
-    if "user" not in session:
-        return redirect("/login")
-    return render_template("chat.html", user=session["user"])
+@app.route("/upload", methods=["POST"])
+def upload():
+    if "file" not in request.files:
+        return "no file", 400
 
-@app.route("/login", methods=["GET","POST"])
-def login():
-    if request.method == "POST":
-        u = request.form["username"]
-        p = request.form["password"]
+    file = request.files["file"]
 
-        conn = db()
-        c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (u,p))
+    if file.filename == "":
+        return "empty", 400
 
-        if c.fetchone():
-            session["user"] = u
-            return redirect("/")
+    path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(path)
 
-    return render_template("login.html")
-
-@app.route("/register", methods=["GET","POST"])
-def register():
-    if request.method == "POST":
-        u = request.form["username"]
-        p = request.form["password"]
-
-        conn = db()
-        c = conn.cursor()
-        c.execute("INSERT INTO users (username,password) VALUES (?,?)",(u,p))
-        conn.commit()
-
-        return redirect("/login")
-
-    return render_template("register.html")
+    return jsonify({"file": file.filename})
 
 # ===== IMAGE =====
 @app.route("/upload", methods=["POST"])
