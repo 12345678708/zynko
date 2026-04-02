@@ -1,7 +1,11 @@
-self.addEventListener("push", e=>{
-    let data = e.data.json();
-
-    self.registration.showNotification(data.title,{
-        body:data.body
-    });
+self.addEventListener("install", e=>{
+    e.waitUntil(
+        caches.open("chat-cache").then(cache=>{
+            return cache.addAll([
+                "/",
+                "/static/style.css",
+                "/static/app.js"
+            ]);
+        })
+    );
 });
