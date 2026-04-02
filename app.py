@@ -1,61 +1,60 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
-import sqlite3, os
+import sqlite3, os, random
 
 app = Flask(__name__)
-app.secret_key = "secret"
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-UPLOAD_FOLDER = "static/uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+UPLOAD = "static/uploads"
+os.makedirs(UPLOAD, exist_ok=True)
 
-# ===== DATABASE =====
+# ===== DB =====
 def db():
     return sqlite3.connect("database.db")
 
 def init():
-    conn = db()
-    c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)")
-    conn.commit()
+    c = db().cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, code TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS messages (user TEXT, msg TEXT)")
+    db().commit()
 
 init()
 
-# ===== ROUTES =====
+# ===== ROUTE =====
+@app.route("/")
+def home():
+    return render_template("chat.html")
+
+# ===== UPLOAD =====
 @app.route("/upload", methods=["POST"])
 def upload():
-    if "file" not in request.files:
-        return "no file", 400
-
-    file = request.files["file"]
-
-    if file.filename == "":
-        return "empty", 400
-
-    path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(path)
-
-    return jsonify({"file": file.filename})
-
-# ===== IMAGE =====
-@app.route("/upload", methods=["POST"])
-def upload():
-    file = request.files["file"]
-    path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(path)
-    return jsonify({"file": file.filename})
+    f = request.files["file"]
+    path = os.path.join(UPLOAD, f.filename)
+    f.save(path)
+    return jsonify({"file": f.filename})
 
 # ===== SOCKET =====
-online_users = set()
+users_online = {}
+typing_users = set()
 
-@socketio.on("join")
-def join(data):
-    online_users.add(data["user"])
-    emit("online", list(online_users), broadcast=True)
+@socketio.on("connect_user")
+def connect(data):
+    users_online[data["user"]] = request.sid
+    emit("online", list(users_online.keys()), broadcast=True)
 
-@socketio.on("message")
-def message(data):
-    emit("message", data, broadcast=True)
+@socketio.on("send_message")
+def msg(data):
+    emit("new_message", data, broadcast=True)
+
+@socketio.on("typing")
+def typing(data):
+    typing_users.add(data["user"])
+    emit("typing", list(typing_users), broadcast=True)
+
+@socketio.on("stop_typing")
+def stop(data):
+    typing_users.discard(data["user"])
+    emit("typing", list(typing_users), broadcast=True)
 
 # ===== RUN =====
 if __name__ == "__main__":
