@@ -1,31 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-<h3>Chat</h3>
+<div id="chat" class="chat"></div>
 
-<div id="chat" class="chat-box"></div>
-
-<input id="msg" placeholder="Message">
-<button onclick="send()">Envoyer</button>
-
-<br><br>
+<div class="input">
+<input id="msg" oninput="typing()" onblur="stopTyping()" placeholder="Message">
+<button onclick="send()">➤</button>
 
 <input type="file" id="img">
-<button onclick="sendImage()">📸 Envoyer image</button>
-
-<br><br>
-
-<button onclick="startRecording()">🎤 Start</button>
-<button onclick="stopRecording()">⏹ Stop</button>
+<button onclick="sendImage()">📸</button>
+</div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="/static/script.js"></script>
+<script src="/static/app.js"></script>
 
 </body>
 </html>
