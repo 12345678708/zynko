@@ -4,46 +4,86 @@
 
 {% block content %}
 <div class="auth-container">
+    <!-- Animated background -->
+    <div class="animated-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <div class="auth-box">
         <div class="logo">
-            <i class="fas fa-network-wired"></i>
+            <div class="logo-icon">
+                <i class="fas fa-network-wired"></i>
+            </div>
             <h1>ZYNKO</h1>
-            <p>Connectez-vous avec vos amis</p>
+            <p>Votre réseau social futuriste</p>
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('login')">Se Connecter</button>
-            <button class="tab-btn" onclick="switchTab('register')">S'Inscrire</button>
+            <button class="tab-btn active" onclick="switchTab('login')">
+                <i class="fas fa-sign-in-alt"></i> Se Connecter
+            </button>
+            <button class="tab-btn" onclick="switchTab('register')">
+                <i class="fas fa-user-plus"></i> S'Inscrire
+            </button>
         </div>
 
         <div id="login" class="tab-content active">
-            <form method="POST" action="/login">
+            <form method="POST" action="/login" onsubmit="handleSubmit(event)">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i> Pseudo</label>
                     <input type="text" name="username" placeholder="Entrez votre pseudo" required>
+                    <span class="input-icon"><i class="fas fa-check-circle"></i></span>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-lock"></i> Mot de passe</label>
-                    <input type="password" name="password" placeholder="Entrez votre mot de passe" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" name="password" placeholder="••••••••" required class="password-input">
+                        <button type="button" class="toggle-password" onclick="togglePassword()"><i class="fas fa-eye"></i></button>
+                    </div>
                 </div>
-                <button type="submit" class="btn-primary">Se Connecter</button>
+                <button type="submit" class="btn-primary">
+                    <span>Se Connecter</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <div class="form-divider">ou</div>
+                <button type="button" class="btn-secondary">
+                    <i class="fab fa-google"></i> Google
+                </button>
             </form>
         </div>
 
         <div id="register" class="tab-content">
-            <form method="POST" action="/register">
+            <form method="POST" action="/register" onsubmit="handleSubmit(event)">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i> Pseudo</label>
-                    <input type="text" name="username" placeholder="Choisissez un pseudo" required>
+                    <input type="text" name="username" placeholder="Choisissez un pseudo unique" required>
+                    <span class="input-info">Entre 3 et 20 caractères</span>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-lock"></i> Mot de passe</label>
-                    <input type="password" name="password" placeholder="Choisissez un mot de passe" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" name="password" placeholder="Minimum 6 caractères" required class="password-input">
+                        <button type="button" class="toggle-password" onclick="togglePassword()"><i class="fas fa-eye"></i></button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar"></div>
+                    </div>
                 </div>
-                <button type="submit" class="btn-primary">S'Inscrire</button>
+                <button type="submit" class="btn-primary">
+                    <span>S'Inscrire</span>
+                    <i class="fas fa-check"></i>
+                </button>
+                <p class="terms">En t'inscrivant, tu acceptes nos <a href="#">conditions d'utilisation</a></p>
             </form>
         </div>
     </div>
+
+    <!-- Floating elements -->
+    <div class="floating-element element-1">💬</div>
+    <div class="floating-element element-2">🤝</div>
+    <div class="floating-element element-3">⭐</div>
 </div>
 
 <script>
@@ -51,7 +91,36 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(tab).classList.add('active');
-    event.target.classList.add('active');
+    event.target.closest('.tab-btn').classList.add('active');
 }
+
+function togglePassword() {
+    const input = document.querySelector('.password-input');
+    const btn = event.target.closest('.toggle-password');
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+    } else {
+        input.type = 'password';
+        btn.innerHTML = '<i class="fas fa-eye"></i>';
+    }
+}
+
+function handleSubmit(e) {
+    const btn = e.target.querySelector('.btn-primary');
+    btn.classList.add('loading');
+}
+
+// Password strength indicator
+document.querySelector('.password-input')?.addEventListener('input', (e) => {
+    const strength = e.target.value.length;
+    const bar = document.querySelector('.strength-bar');
+    if (bar) {
+        bar.style.width = Math.min(strength * 10, 100) + '%';
+        if (strength < 6) bar.style.background = '#ff6b6b';
+        else if (strength < 10) bar.style.background = '#ffd93d';
+        else bar.style.background = '#6bcf7f';
+    }
+});
 </script>
 {% endblock %}

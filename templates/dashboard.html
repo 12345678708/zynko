@@ -4,13 +4,36 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Header -->
+    <!-- Header avec animation -->
     <div class="dashboard-header">
-        <div class="logo-small">
-            <i class="fas fa-network-wired"></i> ZYNKO
+        <div class="header-content">
+            <div class="logo-small">
+                <div class="logo-pulse">
+                    <i class="fas fa-network-wired"></i>
+                </div>
+                <span>ZYNKO</span>
+            </div>
+            <div class="header-stats">
+                <div class="stat">
+                    <i class="fas fa-users"></i>
+                    <span>{{ friends|length }} Amis</span>
+                </div>
+                <div class="stat">
+                    <i class="fas fa-check-circle"></i>
+                    <span>En ligne</span>
+                </div>
+            </div>
         </div>
         <div class="user-info">
-            <span><i class="fas fa-user-circle"></i> {{ user[0] }}</span>
+            <div class="user-badge">
+                <div class="avatar-large">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <span class="username">{{ user[0] }}</span>
+                    <span class="user-status">Connecté</span>
+                </div>
+            </div>
             <a href="/logout" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
         </div>
     </div>
@@ -18,49 +41,114 @@
     <div class="dashboard-content">
         <!-- Sidebar -->
         <div class="sidebar">
-            <div class="card">
-                <h3><i class="fas fa-qrcode"></i> Votre Code Ami</h3>
-                <div class="friend-code">
-                    <code>{{ user[1] }}</code>
-                    <button onclick="copyCode('{{ user[1] }}')" class="btn-copy">
-                        <i class="fas fa-copy"></i>
-                    </button>
+            <!-- Friend Code Card -->
+            <div class="card card-featured">
+                <div class="card-header">
+                    <h3><i class="fas fa-qrcode"></i> Code Ami</h3>
+                    <span class="badge badge-new">Nouveau</span>
                 </div>
-                <p class="code-hint">Partagez ce code à vos amis</p>
+                <div class="friend-code-display">
+                    <div class="code-box">
+                        <code id="codeDisplay">{{ user[1] }}</code>
+                    </div>
+                    <button onclick="copyCode('{{ user[1] }}')" class="btn-copy-large">
+                        <i class="fas fa-copy"></i>
+                        <span>Copier</span>
+                    </button>
+                    <p class="code-hint">Partage ce code avec tes amis pour les ajouter</p>
+                </div>
+                <div class="qr-placeholder">
+                    <i class="fas fa-qrcode"></i>
+                    <span>QR Code (bientôt)</span>
+                </div>
             </div>
 
-            <div class="card">
-                <h3><i class="fas fa-user-plus"></i> Ajouter un Ami</h3>
-                <form method="POST" action="/add_friend">
-                    <input type="text" name="code" placeholder="Code ami (ZYN-XXXXX)" required>
-                    <button type="submit" class="btn-primary">Ajouter</button>
+            <!-- Add Friend Card -->
+            <div class="card card-action">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-plus"></i> Ajouter Ami</h3>
+                </div>
+                <form method="POST" action="/add_friend" class="add-friend-form">
+                    <div class="input-group">
+                        <input type="text" name="code" placeholder="ZYN-XXXXX" required class="input-code">
+                        <button type="submit" class="btn-add-friend">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <p class="input-help">Entre le code d'un ami</p>
                 </form>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="card card-stats">
+                <h3><i class="fas fa-chart-pie"></i> Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ friends|length }}</div>
+                        <div class="stat-label">Amis</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ friends|length }}</div>
+                        <div class="stat-label">En ligne</div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Main content -->
         <div class="main-content">
-            <div class="card">
-                <h3><i class="fas fa-users"></i> Vos Amis ({{ friends|length }})</h3>
+            <!-- Friends Section -->
+            <div class="card card-friends">
+                <div class="card-header">
+                    <h3><i class="fas fa-users"></i> Vos Amis</h3>
+                    <div class="header-actions">
+                        <input type="text" placeholder="🔍 Rechercher" class="search-friends" id="searchInput" onkeyup="filterFriends()">
+                        <select class="sort-friends" id="sortSelect" onchange="sortFriends()">
+                            <option value="name">Nom</option>
+                            <option value="status">Statut</option>
+                        </select>
+                    </div>
+                </div>
+
                 {% if friends %}
-                    <div class="friends-list">
+                    <div class="friends-list" id="friendsList">
                         {% for friend in friends %}
-                            <div class="friend-item">
+                            <div class="friend-item" data-name="{{ friend[0].lower() }}">
                                 <div class="friend-avatar">
-                                    <i class="fas fa-user"></i>
+                                    <img src="https://ui-avatars.com/api/?name={{ friend[0] }}&background=667eea&color=fff" alt="{{ friend[0] }}">
+                                    <div class="status-indicator online"></div>
                                 </div>
                                 <div class="friend-details">
-                                    <span class="friend-name">{{ friend[0] }}</span>
-                                    <span class="friend-status online"><i class="fas fa-circle"></i> En ligne</span>
+                                    <div class="friend-header">
+                                        <span class="friend-name">{{ friend[0] }}</span>
+                                        <span class="friend-badge"><i class="fas fa-star"></i></span>
+                                    </div>
+                                    <span class="friend-status"><i class="fas fa-circle"></i> En ligne</span>
                                 </div>
-                                <button class="btn-message" onclick="alert('Messagerie en développement')"><i class="fas fa-comment"></i></button>
+                                <div class="friend-actions">
+                                    <button class="btn-friend-action" title="Message">
+                                        <i class="fas fa-comment"></i>
+                                    </button>
+                                    <button class="btn-friend-action" title="Appel">
+                                        <i class="fas fa-phone"></i>
+                                    </button>
+                                    <button class="btn-friend-action btn-more" title="Plus">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
                     <div class="empty-state">
-                        <i class="fas fa-user-friends"></i>
-                        <p>Pas d'amis encore. Ajoutez-en pour commencer !</p>
+                        <div class="empty-icon">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <h4>Aucun ami... Encore !</h4>
+                        <p>Commence par partager ton code avec quelqu'un</p>
+                        <div class="empty-code-box">
+                            <code>{{ user[1] }}</code>
+                        </div>
                     </div>
                 {% endif %}
             </div>
@@ -68,10 +156,48 @@
     </div>
 </div>
 
+<style>
+.friend-item {
+    position: relative;
+}
+</style>
+
 <script>
 function copyCode(code) {
     navigator.clipboard.writeText(code);
-    alert('Code copié ! 📋');
+    const btn = event.target.closest('.btn-copy-large');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i><span>Copié !</span>';
+    btn.classList.add('copied');
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('copied');
+    }, 2000);
+}
+
+function filterFriends() {
+    const input = document.getElementById('searchInput').value.toLowerCase();
+    const items = document.querySelectorAll('.friend-item');
+    items.forEach(item => {
+        const name = item.dataset.name;
+        item.style.display = name.includes(input) ? '' : 'none';
+    });
+}
+
+function sortFriends() {
+    const sortValue = document.getElementById('sortSelect').value;
+    const list = document.getElementById('friendsList');
+    const items = Array.from(document.querySelectorAll('.friend-item'));
+    
+    items.sort((a, b) => {
+        if (sortValue === 'name') {
+            return a.dataset.name.localeCompare(b.dataset.name);
+        }
+        return 0;
+    });
+    
+    list.innerHTML = '';
+    items.forEach(item => list.appendChild(item));
 }
 </script>
 {% endblock %}
