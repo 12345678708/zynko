@@ -1,0 +1,19 @@
+<h1>Dashboard Zynko</h1>
+
+<p>Username: {{ user[0] }}</p>
+<p>Ton code ami: <b>{{ user[1] }}</b></p>
+
+<h2>Ajouter un ami</h2>
+<form method="POST" action="/add_friend">
+  <input name="code" placeholder="Code ami">
+  <button>Ajouter</button>
+</form>
+
+<h2>Amis</h2>
+<ul>
+  {% for f in friends %}
+    <li>{{ f[0] }}</li>
+  {% endfor %}
+</ul>
+
+<a href="/logout">Logout</a>
