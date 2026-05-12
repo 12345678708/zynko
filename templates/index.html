@@ -1,32 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>ULTIMATE CHAT</title>
-<link rel="stylesheet" href="/static/style.css">
-<link rel="manifest" href="/static/manifest.json">
-</head>
+<h1>Zynko</h1>
 
-<body>
+<h2>Register</h2>
+<form method="POST" action="/register">
+  <input name="username" placeholder="username">
+  <input name="password" type="password" placeholder="password">
+  <button>Register</button>
+</form>
 
-<div id="app">
-    <h2>💬 Chat Ultime</h2>
-
-    <div id="users">👥 0</div>
-
-    <div id="messages"></div>
-
-    <div id="typing"></div>
-
-    <input id="msg" placeholder="Message...">
-    <button onclick="send()">Envoyer</button>
-
-    <button onclick="startRecording()">🎤</button>
-    <button onclick="sendImage()">📸</button>
-</div>
-
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="/static/app.js"></script>
-
-</body>
-</html>
+<h2>Login</h2>
+<form method="POST" action="/login">
+  <input name="username">
+  <input name="password" type="password">
+  <button>Login</button>
+</form>
