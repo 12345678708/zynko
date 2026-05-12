@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session
 import sqlite3
 import random
 import string
+import os
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret_key"
@@ -176,4 +177,6 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Production: gunicorn launches this, don't use app.run()
+    # Local dev: python app.py works fine
+    app.run(debug=False)
