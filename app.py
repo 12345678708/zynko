@@ -1,8 +1,11 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3
 import random
 import string
 import os
+import qrcode
+from io import BytesIO
+import base64
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret_key"
@@ -20,6 +23,29 @@ def generate_friend_code():
         if not c.fetchone():
             conn.close()
             return code
+
+
+# =========================
+# 📱 GENERATE QR CODE
+# =========================
+def generate_qr_code(friend_code):
+    """Génère un code QR pour le code ami"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(friend_code)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convertir en base64
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/png;base64,{img_str}"
 
 
 # =========================
@@ -133,9 +159,25 @@ def dashboard():
 
     friends = c.fetchall()
 
+    # Générer le QR code
+    qr_code = generate_qr_code(user[1])
+
     conn.close()
 
-    return render_template("dashboard.html", user=user, friends=friends)
+    return render_template("dashboard.html", user=user, friends=friends, qr_code=qr_code)
+
+
+# =========================
+# 📱 API QR CODE
+# =========================
+@app.route("/api/qr/<friend_code>")
+def get_qr_code(friend_code):
+    """Endpoint pour obtenir le QR code en JSON"""
+    try:
+        qr_code = generate_qr_code(friend_code)
+        return jsonify({"success": True, "qr_code": qr_code})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
 
 
 # =========================
@@ -146,7 +188,7 @@ def add_friend():
     if "user_id" not in session:
         return redirect("/")
 
-    code = request.form["code"]
+    code = request.form["code"].upper().strip()
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -155,10 +197,22 @@ def add_friend():
     user = c.fetchone()
 
     if not user:
+        conn.close()
         return "Code introuvable ❌"
 
     friend_id = user[0]
     user_id = session["user_id"]
+
+    # Vérifier que l'utilisateur n'ajoute pas lui-même
+    if user_id == friend_id:
+        conn.close()
+        return "Tu ne peux pas t'ajouter toi-même 🙅"
+
+    # Vérifier si déjà amis
+    c.execute("SELECT * FROM friends WHERE user_id=? AND friend_id=?", (user_id, friend_id))
+    if c.fetchone():
+        conn.close()
+        return "Vous êtes déjà amis ✅"
 
     c.execute("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", (user_id, friend_id))
     conn.commit()
