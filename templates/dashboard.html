@@ -55,12 +55,14 @@
                         <i class="fas fa-copy"></i>
                         <span>Copier</span>
                     </button>
-                    <p class="code-hint">Partage ce code avec tes amis</p>
+                    <p class="code-hint">Partage ce code avec tes amis pour les ajouter</p>
                 </div>
                 
                 <!-- QR Code Display -->
                 <div class="qr-display">
-                    <img src="{{ qr_code }}" alt="QR Code" class="qr-image">
+                    {% if qr_code %}
+                        <img src="{{ qr_code }}" alt="QR Code" class="qr-image">
+                    {% endif %}
                     <p class="qr-text">Scanne ce code pour ajouter</p>
                 </div>
             </div>
@@ -244,135 +246,4 @@ document.addEventListener('click', (e) => {
     }
 });
 </script>
-
-<style>
-.friend-item {
-    position: relative;
-}
-
-.qr-display {
-    background: white;
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-}
-
-.qr-image {
-    width: 140px;
-    height: 140px;
-    margin: 0 auto;
-    display: block;
-    border-radius: 8px;
-}
-
-.qr-text {
-    font-size: 12px;
-    color: var(--text-light);
-    margin-top: 8px;
-}
-
-.empty-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 15px;
-}
-
-.empty-option {
-    background: white;
-    border-radius: 10px;
-    padding: 12px;
-    text-align: left;
-}
-
-.empty-option strong {
-    display: block;
-    color: var(--primary);
-    margin-bottom: 6px;
-    font-size: 14px;
-}
-
-.empty-option p {
-    font-size: 13px;
-    color: var(--text-light);
-    margin: 0;
-}
-
-/* Modal Styles */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: flex-end;
-    z-index: 1000;
-    animation: slideUp 0.3s ease-out;
-}
-
-.modal.hidden {
-    display: none;
-}
-
-.modal-content {
-    background: white;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 20px 20px 0 0;
-    padding: 20px;
-    position: relative;
-    margin: 0 auto;
-}
-
-.modal-close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #f0f0f0;
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content h3 {
-    margin-bottom: 15px;
-}
-
-.modal-btn {
-    width: 100%;
-    padding: 12px;
-    background: #f0f0f0;
-    border: none;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-}
-
-.modal-btn:hover {
-    background: #e0e0e0;
-}
-
-.modal-btn-danger {
-    color: var(--danger);
-}
-
-@media (max-width: 768px) {
-    .modal-content {
-        max-width: 100%;
-    }
-}
-</style>
 {% endblock %}

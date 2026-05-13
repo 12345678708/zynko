@@ -58,13 +58,13 @@
             <form method="POST" action="/register" onsubmit="handleSubmit(event)">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i> Pseudo</label>
-                    <input type="text" name="username" placeholder="Choisissez un pseudo unique" required>
+                    <input type="text" name="username" placeholder="Choisissez un pseudo unique" required minlength="3" maxlength="20">
                     <span class="input-info">Entre 3 et 20 caractères</span>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-lock"></i> Mot de passe</label>
                     <div class="password-input-wrapper">
-                        <input type="password" name="password" placeholder="Minimum 6 caractères" required class="password-input">
+                        <input type="password" name="password" placeholder="Minimum 6 caractères" required minlength="6" class="password-input">
                         <button type="button" class="toggle-password" onclick="togglePassword()"><i class="fas fa-eye"></i></button>
                     </div>
                     <div class="password-strength">
