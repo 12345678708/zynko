@@ -107,10 +107,11 @@ def register():
         )
         conn.commit()
     except:
+        conn.close()
         return "Utilisateur déjà existant ❌"
 
     conn.close()
-    return redirect("/")
+    return redirect("/?registered=success")
 
 
 # =========================
@@ -147,9 +148,17 @@ def dashboard():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
+    # Récupérer les infos utilisateur
     c.execute("SELECT username, friend_code FROM users WHERE id=?", (session["user_id"],))
     user = c.fetchone()
 
+    # Vérifier que l'utilisateur existe
+    if not user:
+        conn.close()
+        session.clear()
+        return redirect("/")
+
+    # Récupérer les amis
     c.execute("""
     SELECT u.username
     FROM friends f
@@ -193,6 +202,7 @@ def add_friend():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
+    # Chercher l'utilisateur par code ami
     c.execute("SELECT id FROM users WHERE friend_code=?", (code,))
     user = c.fetchone()
 
@@ -214,8 +224,13 @@ def add_friend():
         conn.close()
         return "Vous êtes déjà amis ✅"
 
-    c.execute("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", (user_id, friend_id))
-    conn.commit()
+    try:
+        c.execute("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", (user_id, friend_id))
+        conn.commit()
+    except Exception as e:
+        conn.close()
+        return f"Erreur lors de l'ajout : {str(e)}"
+
     conn.close()
 
     return redirect("/dashboard")
