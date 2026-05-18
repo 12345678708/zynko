@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}DIORX - IA Conversationnelle{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- Avatar DIORX -->
+    <div class="avatar-section">
+        <div class="avatar-wrapper">
+            <div id="avatar">
+                <div id="head">
+                    <div id="eye-left"></div>
+                    <div id="eye-right"></div>
+                    <div id="mouth"></div>
+                </div>
+            </div>
+        </div>
+        <h1>{{ name }} 🤖</h1>
+        <p class="subtitle">Ton IA personnelle</p>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-box">
+        <div class="messages" id="messages">
+            {% for u, b, e in history %}
+                <div class="message user-msg">
+                    <span>🧑 {{ u }}</span>
+                </div>
+                <div class="message bot-msg {{ e }}">
+                    <span>🤖 {{ b }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div id="thoughts"></div>
+
+        <form id="chatForm" class="input-area">
+            <input type="text" id="messageInput" placeholder="Écris un message..." autofocus>
+            <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i></button>
+            <button type="button" class="btn-speak" onclick="speak()"><i class="fas fa-volume-up"></i></button>
+            <button type="button" class="btn-listen" onclick="listen()"><i class="fas fa-microphone"></i></button>
+        </form>
+    </div>
+</div>
+
+<style>
+.chat-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    height: 100vh;
+}
+
+.avatar-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 30px 20px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+}
+
+.avatar-wrapper {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 20px;
+    position: relative;
+}
+
+#avatar {
+    width: 100%;
+    height: 100%;
+}
+
+#head {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+#eye-left, #eye-right {
+    width: 20px;
+    height: 15px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 50px;
+    transition: all 0.2s;
+}
+
+#eye-left { left: 45px; }
+#eye-right { right: 45px; }
+
+#mouth {
+    width: 60px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 30px;
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: all 0.1s;
+}
+
+.subtitle {
+    opacity: 0.9;
+    font-size: 14px;
+}
+
+.chat-box {
+    background: white;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 15px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.user-msg {
+    align-self: flex-end;
+    background: #667eea;
+    color: white;
+}
+
+.bot-msg {
+    align-self: flex-start;
+    background: #f0f0f0;
+    color: #333;
+}
+
+.bot-msg.happy {
+    background: #fff9c4;
+}
+
+.bot-msg.sad {
+    background: #ffccbc;
+}
+
+.bot-msg.normal {
+    background: #e3f2fd;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#thoughts {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    height: 20px;
+    padding: 5px;
+}
+
+.input-area {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+}
+
+.input-area input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 25px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.input-area input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-send, .btn-speak, .btn-listen {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.btn-send:hover, .btn-speak:hover, .btn-listen:hover {
+    background: #764ba2;
+    transform: scale(1.05);
+}
+
+@media (max-width: 1024px) {
+    .chat-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .avatar-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .avatar-wrapper {
+        width: 100px;
+        height: 100px;
+        margin: 0;
+    }
+}
+</style>
+
+<script>
+let isSpeaking = false;
+
+// Animation des yeux qui clignotent
+function blink() {
+    let eyes = [document.getElementById('eye-left'), document.getElementById('eye-right')];
+    eyes.forEach(e => e.style.height = '2px');
+    setTimeout(() => eyes.forEach(e => e.style.height = '15px'), 200);
+}
+setInterval(blink, 4000);
+
+// Suivi de la souris
+document.addEventListener('mousemove', e => {
+    let head = document.getElementById('head');
+    let rect = head.getBoundingClientRect();
+    let eyes = [document.getElementById('eye-left'), document.getElementById('eye-right')];
+    eyes.forEach(eye => {
+        let dx = (e.clientX - (rect.left + rect.width / 2)) / 30;
+        let dy = (e.clientY - (rect.top + rect.height / 2)) / 30;
+        eye.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+});
+
+// Animation de la bouche
+function animateMouth(text) {
+    let mouth = document.getElementById('mouth');
+    let words = text.split(' ').length;
+    let step = 0;
+    let interval = setInterval(() => {
+        mouth.style.height = (Math.random() * 5 + 10) + 'px';
+        step++;
+        if (step >= words) {
+            clearInterval(interval);
+            mouth.style.height = '10px';
+        }
+    }, 300);
+}
+
+// Parole synthétique
+function speak() {
+    let messages = document.querySelectorAll('.bot-msg');
+    if (messages.length) {
+        let txt = messages[messages.length - 1].innerText;
+        txt = txt.replace(/[\u{1F300}-\u{1FAFF}]/gu, '');
+        let utter = new SpeechSynthesisUtterance(txt);
+        utter.lang = 'fr-FR';
+        let thoughts = document.getElementById('thoughts');
+        thoughts.innerHTML = '<div>💭 ' + txt + '</div>';
+        utter.onstart = () => { animateMouth(txt); isSpeaking = true; }
+        utter.onend = () => { thoughts.innerHTML = ''; isSpeaking = false; }
+        speechSynthesis.speak(utter);
+    }
+}
+
+// Reconnaissance vocale
+function listen() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'fr-FR';
+    recognition.start();
+    recognition.onresult = function(event) {
+        let transcript = event.results[0][0].transcript;
+        document.getElementById('messageInput').value = transcript;
+    }
+}
+
+// Envoi de message
+document.getElementById('chatForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let input = document.getElementById('messageInput');
+    let message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Ajouter le message utilisateur
+    let messagesDiv = document.getElementById('messages');
+    let userDiv = document.createElement('div');
+    userDiv.className = 'message user-msg';
+    userDiv.innerHTML = `<span>🧑 ${message}</span>`;
+    messagesDiv.appendChild(userDiv);
+    
+    input.value = '';
+    
+    // Appel API
+    try {
+        let response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        });
+        
+        let data = await response.json();
+        
+        // Ajouter la réponse
+        let botDiv = document.createElement('div');
+        botDiv.className = `message bot-msg ${data.emotion}`;
+        botDiv.innerHTML = `<span>🤖 ${data.response}</span>`;
+        messagesDiv.appendChild(botDiv);
+        
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        // Animer la bouche
+        animateMouth(data.response);
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+});
+
+// Scroll automatique
+window.addEventListener('load', () => {
+    let messagesDiv = document.getElementById('messages');
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+</script>
+{% endblock %}

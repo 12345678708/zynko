@@ -9,9 +9,91 @@ import base64
 import secrets
 import time
 from datetime import datetime, timedelta
+import unicodedata
+import re
+from collections import defaultdict, deque
 
 app = Flask(__name__)
 app.secret_key = "zynko_secret_key_super_secure_2026"
+
+# =========================
+# 🤖 IA DIORX
+# =========================
+NOM_IA = "DIORX"
+brain = defaultdict(list)
+context = deque(maxlen=50)
+history = []
+
+def clean(text):
+    text = text.lower()
+    text = ''.join(c for c in unicodedata.normalize('NFD', text)
+                   if unicodedata.category(c) != 'Mn')
+    text = re.sub(r'[^\w\s]', '', text)
+    return text
+
+def learn(sentence):
+    words = sentence.split()
+    if len(words) > 2:
+        for i in range(len(words)-2):
+            key = (words[i], words[i+1])
+            brain[key].append(words[i+2])
+    context.append(sentence)
+
+def generate_response(max_words=15):
+    if not brain:
+        return "desoler je ne comprent pas encore"
+    key = random.choice(list(brain.keys()))
+    phrase = [key[0], key[1]]
+    for _ in range(max_words):
+        if key not in brain: break
+        next_word = random.choice(brain[key])
+        phrase.append(next_word)
+        key = (key[1], next_word)
+    return " ".join(phrase)
+
+def emotion(msg):
+    msg_clean = clean(msg)
+    if any(w in msg_clean for w in ["triste", "fatigu", "marre", "deprim"]): return "sad"
+    if any(w in msg_clean for w in ["super", "cool", "genial", "top", "heureux"]): return "happy"
+    return "normal"
+
+def reply(message):
+    msg_clean = clean(message)
+    learn(msg_clean)
+    
+    # Salutations
+    if any(w in msg_clean for w in ["salut", "bonjour", "coucou"]):
+        return "Salut ! Je suis DIORX, ton IA personnelle 😄"
+    
+    # Pierre-feuille-ciseaux
+    if "pierre feuille ciseaux" in msg_clean or "pfc" in msg_clean:
+        choix = ["pierre", "feuille", "ciseaux"]
+        ia = random.choice(choix)
+        return f"Je choisis {ia} ! 😎"
+    
+    # Heure
+    if "heure" in msg_clean:
+        return f"Il est {datetime.now().strftime('%H:%M')} 🕒"
+    
+    # Météo
+    if "meteo" in msg_clean or "météo" in msg_clean:
+        meteos = ["☀️ soleil", "🌧️ pluie", "⛅ nuages", "🌬️ vent"]
+        return f"Aujourd'hui : {random.choice(meteos)}"
+    
+    # Conseils
+    if "conseil" in msg_clean:
+        tips = ["Respire 🙂", "Prends une pause ☕", "Reste positif 💪", "Bois de l'eau 💧"]
+        return random.choice(tips)
+    
+    # Génération intelligente
+    gen = generate_response()
+    e = emotion(message)
+    if e == "sad":
+        return "Je comprends 😢 " + gen
+    elif e == "happy":
+        return "Génial 😄 " + gen
+    else:
+        return "Hmm 🤔 " + gen
 
 # =========================
 # 🔑 CODE AMI UNIQUE
@@ -27,12 +109,10 @@ def generate_friend_code():
             conn.close()
             return code
 
-
 # =========================
 # 📱 GENERATE QR CODE
 # =========================
 def generate_qr_code(friend_code):
-    """Génère un code QR pour le code ami"""
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -43,13 +123,10 @@ def generate_qr_code(friend_code):
     qr.make(fit=True)
     
     img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Convertir en base64
     buffered = BytesIO()
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/png;base64,{img_str}"
-
 
 # =========================
 # 🧱 INIT DATABASE
@@ -58,7 +135,6 @@ def init_db():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    # Table users avec email et sécurité
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +147,6 @@ def init_db():
     )
     """)
 
-    # Table pour codes de vérification email à usage unique
     c.execute("""
     CREATE TABLE IF NOT EXISTS verification_codes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +159,6 @@ def init_db():
     )
     """)
 
-    # Table friends
     c.execute("""
     CREATE TABLE IF NOT EXISTS friends (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,49 +171,28 @@ def init_db():
     )
     """)
 
-    # Table pour les codes d'invitation à usage unique
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS invitation_codes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        code TEXT UNIQUE NOT NULL,
-        used_by_user_id INTEGER,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(used_by_user_id) REFERENCES users(id)
-    )
-    """)
-
     conn.commit()
     conn.close()
 
 init_db()
 
-
 # =========================
-# 🔐 HASH PASSWORD (SIMPLE VERSION - A REMPLACER PAR BCRYPT EN PROD)
+# 🔐 HASH PASSWORD
 # =========================
 def hash_password(password):
-    """Hash simple du mot de passe - À remplacer par bcrypt en production!"""
     import hashlib
     return hashlib.sha256(password.encode()).hexdigest()
 
-
 def verify_password(password, hashed):
-    """Vérifie le mot de passe"""
     return hash_password(password) == hashed
-
 
 # =========================
 # 📧 GENERATE VERIFICATION CODE
 # =========================
 def generate_verification_code(user_id):
-    """Génère un code de vérification email à usage unique"""
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
     
-    # Générer un code sécurisé de 6 chiffres
     code = ''.join(random.choices(string.digits, k=6))
     expires_at = datetime.now() + timedelta(hours=1)
     
@@ -152,7 +205,6 @@ def generate_verification_code(user_id):
     
     return code
 
-
 # =========================
 # 🏠 HOME
 # =========================
@@ -161,7 +213,6 @@ def home():
     if "user_id" in session:
         return redirect("/dashboard")
     return render_template("index.html")
-
 
 # =========================
 # 🆕 REGISTER
@@ -172,7 +223,6 @@ def register():
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
     
-    # Validation
     if len(username) < 3:
         return "Pseudo doit avoir au moins 3 caractères ❌"
     if len(password) < 6:
@@ -194,7 +244,6 @@ def register():
         conn.commit()
         user_id = c.lastrowid
         
-        # Générer le code de vérification
         verification_code = generate_verification_code(user_id)
         print(f"Code de vérification pour {email}: {verification_code}")
         
@@ -207,18 +256,14 @@ def register():
         return f"Erreur: {str(e)} ❌"
 
     conn.close()
-    # Rediriger vers vérification email
     return redirect(f"/verify-email/{user_id}")
-
 
 # =========================
 # 📧 VERIFY EMAIL PAGE
 # =========================
 @app.route("/verify-email/<int:user_id>")
 def verify_email_page(user_id):
-    """Page pour entrer le code de vérification"""
     return render_template("verify_email.html", user_id=user_id)
-
 
 # =========================
 # ✅ VERIFY CODE
@@ -231,7 +276,6 @@ def verify_code():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
     
-    # Vérifier le code
     c.execute(
         """SELECT id FROM verification_codes 
            WHERE user_id=? AND code=? AND used=0 AND expires_at > datetime('now')""",
@@ -243,15 +287,12 @@ def verify_code():
         conn.close()
         return "Code invalide ou expiré ❌"
     
-    # Marquer le code comme utilisé
     c.execute("UPDATE verification_codes SET used=1 WHERE id=?", (verify_record[0],))
-    # Marquer l'email comme vérifié
     c.execute("UPDATE users SET email_verified=1 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
     
     return redirect("/")
-
 
 # =========================
 # 🔐 LOGIN
@@ -277,6 +318,28 @@ def login():
 
     return "Login incorrect ❌"
 
+# =========================
+# 🤖 CHAT WITH DIORX
+# =========================
+@app.route("/chat")
+def chat():
+    return render_template("chat.html", name=NOM_IA, history=history)
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    message = request.json.get("message", "")
+    if not message:
+        return jsonify({"error": "Message vide"}), 400
+    
+    response = reply(message)
+    emo = emotion(message)
+    history.append((message, response, emo))
+    
+    return jsonify({
+        "message": message,
+        "response": response,
+        "emotion": emo
+    })
 
 # =========================
 # 📊 DASHBOARD
@@ -289,17 +352,14 @@ def dashboard():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    # Récupérer les infos utilisateur
     c.execute("SELECT username, friend_code, email FROM users WHERE id=?", (session["user_id"],))
     user = c.fetchone()
 
-    # Vérifier que l'utilisateur existe
     if not user:
         conn.close()
         session.clear()
         return redirect("/")
 
-    # Récupérer les amis
     c.execute("""
     SELECT u.id, u.username
     FROM friends f
@@ -309,14 +369,11 @@ def dashboard():
     """, (session["user_id"],))
 
     friends = c.fetchall()
-
-    # Générer le QR code
     qr_code = generate_qr_code(user[1])
 
     conn.close()
 
     return render_template("dashboard.html", user=user, friends=friends, qr_code=qr_code)
-
 
 # =========================
 # ➕ ADD FRIEND
@@ -334,7 +391,6 @@ def add_friend():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    # Chercher l'utilisateur par code ami
     c.execute("SELECT id, username FROM users WHERE friend_code=?", (code,))
     user = c.fetchone()
 
@@ -345,24 +401,20 @@ def add_friend():
     friend_id = user[0]
     user_id = session["user_id"]
 
-    # Vérifier que l'utilisateur n'ajoute pas lui-même
     if user_id == friend_id:
         conn.close()
         return "Tu ne peux pas t'ajouter toi-même 🙅"
 
-    # Vérifier si déjà amis
     c.execute("SELECT * FROM friends WHERE user_id=? AND friend_id=?", (user_id, friend_id))
     if c.fetchone():
         conn.close()
         return "Vous êtes déjà amis ✅"
 
     try:
-        # Ajouter en tant qu'ami
         c.execute(
             "INSERT INTO friends (user_id, friend_id) VALUES (?, ?)",
             (user_id, friend_id)
         )
-        # Ajouter l'amitié réciproque (optionnel - pour une amitié bidirectionnelle)
         c.execute(
             "INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)",
             (friend_id, user_id)
@@ -374,7 +426,6 @@ def add_friend():
         conn.close()
         return f"Erreur lors de l'ajout: {str(e)} ❌"
 
-
 # =========================
 # 🚪 LOGOUT
 # =========================
@@ -382,7 +433,6 @@ def add_friend():
 def logout():
     session.clear()
     return redirect("/")
-
 
 if __name__ == "__main__":
     app.run(debug=False)
