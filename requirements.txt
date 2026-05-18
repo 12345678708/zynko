@@ -3,3 +3,5 @@ flask-socketio
 eventlet
 gunicorn
 qrcode[pil]
+email-validator
+werkzeug

@@ -6,9 +6,12 @@ import os
 import qrcode
 from io import BytesIO
 import base64
+import secrets
+import time
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = "zynko_secret_key"
+app.secret_key = "zynko_secret_key_super_secure_2026"
 
 # =========================
 # 🔑 CODE AMI UNIQUE
@@ -55,20 +58,56 @@ def init_db():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
+    # Table users avec email et sécurité
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        friend_code TEXT UNIQUE
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        friend_code TEXT UNIQUE NOT NULL,
+        email_verified INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
+    # Table pour codes de vérification email à usage unique
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS verification_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        code TEXT UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
+    # Table friends
     c.execute("""
     CREATE TABLE IF NOT EXISTS friends (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        friend_id INTEGER
+        user_id INTEGER NOT NULL,
+        friend_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, friend_id),
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(friend_id) REFERENCES users(id)
+    )
+    """)
+
+    # Table pour les codes d'invitation à usage unique
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS invitation_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        code TEXT UNIQUE NOT NULL,
+        used_by_user_id INTEGER,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(used_by_user_id) REFERENCES users(id)
     )
     """)
 
@@ -76,6 +115,42 @@ def init_db():
     conn.close()
 
 init_db()
+
+
+# =========================
+# 🔐 HASH PASSWORD (SIMPLE VERSION - A REMPLACER PAR BCRYPT EN PROD)
+# =========================
+def hash_password(password):
+    """Hash simple du mot de passe - À remplacer par bcrypt en production!"""
+    import hashlib
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def verify_password(password, hashed):
+    """Vérifie le mot de passe"""
+    return hash_password(password) == hashed
+
+
+# =========================
+# 📧 GENERATE VERIFICATION CODE
+# =========================
+def generate_verification_code(user_id):
+    """Génère un code de vérification email à usage unique"""
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    
+    # Générer un code sécurisé de 6 chiffres
+    code = ''.join(random.choices(string.digits, k=6))
+    expires_at = datetime.now() + timedelta(hours=1)
+    
+    c.execute(
+        "INSERT INTO verification_codes (user_id, code, expires_at) VALUES (?, ?, ?)",
+        (user_id, code, expires_at)
+    )
+    conn.commit()
+    conn.close()
+    
+    return code
 
 
 # =========================
@@ -93,25 +168,89 @@ def home():
 # =========================
 @app.route("/register", methods=["POST"])
 def register():
-    username = request.form["username"]
-    password = request.form["password"]
+    username = request.form.get("username", "").strip()
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    
+    # Validation
+    if len(username) < 3:
+        return "Pseudo doit avoir au moins 3 caractères ❌"
+    if len(password) < 6:
+        return "Mot de passe doit avoir au moins 6 caractères ❌"
+    if "@" not in email:
+        return "Email invalide ❌"
+    
     code = generate_friend_code()
+    hashed_password = hash_password(password)
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
     try:
         c.execute(
-            "INSERT INTO users (username, password, friend_code) VALUES (?, ?, ?)",
-            (username, password, code)
+            "INSERT INTO users (username, email, password, friend_code) VALUES (?, ?, ?, ?)",
+            (username, email, hashed_password, code)
         )
         conn.commit()
-    except:
+        user_id = c.lastrowid
+        
+        # Générer le code de vérification
+        verification_code = generate_verification_code(user_id)
+        print(f"Code de vérification pour {email}: {verification_code}")
+        
+    except Exception as e:
         conn.close()
-        return "Utilisateur déjà existant ❌"
+        if "username" in str(e).lower():
+            return "Pseudo déjà pris ❌"
+        elif "email" in str(e).lower():
+            return "Email déjà utilisé ❌"
+        return f"Erreur: {str(e)} ❌"
 
     conn.close()
-    return redirect("/?registered=success")
+    # Rediriger vers vérification email
+    return redirect(f"/verify-email/{user_id}")
+
+
+# =========================
+# 📧 VERIFY EMAIL PAGE
+# =========================
+@app.route("/verify-email/<int:user_id>")
+def verify_email_page(user_id):
+    """Page pour entrer le code de vérification"""
+    return render_template("verify_email.html", user_id=user_id)
+
+
+# =========================
+# ✅ VERIFY CODE
+# =========================
+@app.route("/verify-code", methods=["POST"])
+def verify_code():
+    user_id = request.form.get("user_id")
+    code = request.form.get("code", "").strip()
+    
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    
+    # Vérifier le code
+    c.execute(
+        """SELECT id FROM verification_codes 
+           WHERE user_id=? AND code=? AND used=0 AND expires_at > datetime('now')""",
+        (user_id, code)
+    )
+    verify_record = c.fetchone()
+    
+    if not verify_record:
+        conn.close()
+        return "Code invalide ou expiré ❌"
+    
+    # Marquer le code comme utilisé
+    c.execute("UPDATE verification_codes SET used=1 WHERE id=?", (verify_record[0],))
+    # Marquer l'email comme vérifié
+    c.execute("UPDATE users SET email_verified=1 WHERE id=?", (user_id,))
+    conn.commit()
+    conn.close()
+    
+    return redirect("/")
 
 
 # =========================
@@ -119,18 +258,20 @@ def register():
 # =========================
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form["username"]
-    password = request.form["password"]
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
-    c.execute("SELECT id FROM users WHERE username=? AND password=?", (username, password))
+    c.execute("SELECT id, password, email_verified FROM users WHERE username=?", (username,))
     user = c.fetchone()
 
     conn.close()
 
-    if user:
+    if user and verify_password(password, user[1]):
+        if not user[2]:
+            return "Email non vérifié ❌ Vérifiez votre email!"
         session["user_id"] = user[0]
         return redirect("/dashboard")
 
@@ -149,7 +290,7 @@ def dashboard():
     c = conn.cursor()
 
     # Récupérer les infos utilisateur
-    c.execute("SELECT username, friend_code FROM users WHERE id=?", (session["user_id"],))
+    c.execute("SELECT username, friend_code, email FROM users WHERE id=?", (session["user_id"],))
     user = c.fetchone()
 
     # Vérifier que l'utilisateur existe
@@ -160,10 +301,11 @@ def dashboard():
 
     # Récupérer les amis
     c.execute("""
-    SELECT u.username
+    SELECT u.id, u.username
     FROM friends f
     JOIN users u ON u.id = f.friend_id
     WHERE f.user_id=?
+    ORDER BY u.username ASC
     """, (session["user_id"],))
 
     friends = c.fetchall()
@@ -177,19 +319,6 @@ def dashboard():
 
 
 # =========================
-# 📱 API QR CODE
-# =========================
-@app.route("/api/qr/<friend_code>")
-def get_qr_code(friend_code):
-    """Endpoint pour obtenir le QR code en JSON"""
-    try:
-        qr_code = generate_qr_code(friend_code)
-        return jsonify({"success": True, "qr_code": qr_code})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 400
-
-
-# =========================
 # ➕ ADD FRIEND
 # =========================
 @app.route("/add_friend", methods=["POST"])
@@ -197,13 +326,16 @@ def add_friend():
     if "user_id" not in session:
         return redirect("/")
 
-    code = request.form["code"].upper().strip()
+    code = request.form.get("code", "").upper().strip()
+    
+    if not code:
+        return "Veuillez entrer un code ❌"
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
     # Chercher l'utilisateur par code ami
-    c.execute("SELECT id FROM users WHERE friend_code=?", (code,))
+    c.execute("SELECT id, username FROM users WHERE friend_code=?", (code,))
     user = c.fetchone()
 
     if not user:
@@ -225,15 +357,22 @@ def add_friend():
         return "Vous êtes déjà amis ✅"
 
     try:
-        c.execute("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", (user_id, friend_id))
+        # Ajouter en tant qu'ami
+        c.execute(
+            "INSERT INTO friends (user_id, friend_id) VALUES (?, ?)",
+            (user_id, friend_id)
+        )
+        # Ajouter l'amitié réciproque (optionnel - pour une amitié bidirectionnelle)
+        c.execute(
+            "INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)",
+            (friend_id, user_id)
+        )
         conn.commit()
+        conn.close()
+        return redirect("/dashboard")
     except Exception as e:
         conn.close()
-        return f"Erreur lors de l'ajout : {str(e)}"
-
-    conn.close()
-
-    return redirect("/dashboard")
+        return f"Erreur lors de l'ajout: {str(e)} ❌"
 
 
 # =========================
@@ -246,6 +385,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    # Production: gunicorn launches this, don't use app.run()
-    # Local dev: python app.py works fine
     app.run(debug=False)
