@@ -1,126 +1,180 @@
-{% extends "base.html" %}
-
-{% block title %}Zynko - Connexion{% endblock %}
-
-{% block content %}
-<div class="auth-container">
-    <!-- Animated background -->
-    <div class="animated-bg">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
-
-    <div class="auth-box">
-        <div class="logo">
-            <div class="logo-icon">
-                <i class="fas fa-network-wired"></i>
-            </div>
-            <h1>ZYNKO</h1>
-            <p>Votre réseau social futuriste</p>
-        </div>
-
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ZYNKO - Connexion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 ZYNKO</h1>
+        
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('login')">
-                <i class="fas fa-sign-in-alt"></i> Se Connecter
-            </button>
-            <button class="tab-btn" onclick="switchTab('register')">
-                <i class="fas fa-user-plus"></i> S'Inscrire
-            </button>
+            <button class="tab-btn active" onclick="switchTab('login')">Se connecter</button>
+            <button class="tab-btn" onclick="switchTab('register')">S'inscrire</button>
         </div>
-
+        
+        <!-- LOGIN -->
         <div id="login" class="tab-content active">
-            <form method="POST" action="/login" onsubmit="handleSubmit(event)">
+            <form method="POST" action="/login">
                 <div class="form-group">
-                    <label><i class="fas fa-user"></i> Pseudo</label>
-                    <input type="text" name="username" placeholder="Entrez votre pseudo" required>
-                    <span class="input-icon"><i class="fas fa-check-circle"></i></span>
+                    <label>Pseudo</label>
+                    <input type="text" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label><i class="fas fa-lock"></i> Mot de passe</label>
-                    <div class="password-input-wrapper">
-                        <input type="password" name="password" placeholder="••••••••" required class="password-input">
-                        <button type="button" class="toggle-password" onclick="togglePassword()"><i class="fas fa-eye"></i></button>
-                    </div>
+                    <label>Mot de passe</label>
+                    <input type="password" name="password" required>
                 </div>
-                <button type="submit" class="btn-primary">
-                    <span>Se Connecter</span>
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-                <div class="form-divider">ou</div>
-                <button type="button" class="btn-secondary">
-                    <i class="fab fa-google"></i> Google
-                </button>
+                <button type="submit">Se connecter</button>
             </form>
         </div>
-
+        
+        <!-- REGISTER -->
         <div id="register" class="tab-content">
-            <form method="POST" action="/register" onsubmit="handleSubmit(event)">
+            <form method="POST" action="/register">
                 <div class="form-group">
-                    <label><i class="fas fa-user"></i> Pseudo</label>
-                    <input type="text" name="username" placeholder="Choisissez un pseudo unique" required minlength="3" maxlength="20">
-                    <span class="input-info">Entre 3 et 20 caractères</span>
+                    <label>Pseudo (min 3 caracteres)</label>
+                    <input type="text" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label><i class="fas fa-lock"></i> Mot de passe</label>
-                    <div class="password-input-wrapper">
-                        <input type="password" name="password" placeholder="Minimum 6 caractères" required minlength="6" class="password-input">
-                        <button type="button" class="toggle-password" onclick="togglePassword()"><i class="fas fa-eye"></i></button>
-                    </div>
-                    <div class="password-strength">
-                        <div class="strength-bar"></div>
-                    </div>
+                    <label>Email</label>
+                    <input type="email" name="email" required>
                 </div>
-                <button type="submit" class="btn-primary">
-                    <span>S'Inscrire</span>
-                    <i class="fas fa-check"></i>
-                </button>
-                <p class="terms">En t'inscrivant, tu acceptes nos <a href="#">conditions d'utilisation</a></p>
+                <div class="form-group">
+                    <label>Mot de passe (min 6 caracteres)</label>
+                    <input type="password" name="password" required>
+                </div>
+                <button type="submit">S'inscrire</button>
             </form>
         </div>
     </div>
-
-    <!-- Floating elements -->
-    <div class="floating-element element-1">💬</div>
-    <div class="floating-element element-2">🤝</div>
-    <div class="floating-element element-3">⭐</div>
-</div>
-
-<script>
-function switchTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(tab).classList.add('active');
-    event.target.closest('.tab-btn').classList.add('active');
-}
-
-function togglePassword() {
-    const input = document.querySelector('.password-input');
-    const btn = event.target.closest('.toggle-password');
-    if (input.type === 'password') {
-        input.type = 'text';
-        btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
-    } else {
-        input.type = 'password';
-        btn.innerHTML = '<i class="fas fa-eye"></i>';
-    }
-}
-
-function handleSubmit(e) {
-    const btn = e.target.querySelector('.btn-primary');
-    btn.classList.add('loading');
-}
-
-// Password strength indicator
-document.querySelector('.password-input')?.addEventListener('input', (e) => {
-    const strength = e.target.value.length;
-    const bar = document.querySelector('.strength-bar');
-    if (bar) {
-        bar.style.width = Math.min(strength * 10, 100) + '%';
-        if (strength < 6) bar.style.background = '#ff6b6b';
-        else if (strength < 10) bar.style.background = '#ffd93d';
-        else bar.style.background = '#6bcf7f';
-    }
-});
-</script>
-{% endblock %}
+    
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
