@@ -5,3 +5,6 @@ gunicorn
 qrcode[pil]
 email-validator
 werkzeug
+python-socketio
+python-engineio
+python-dotenv
