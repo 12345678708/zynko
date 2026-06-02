@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ZYNKO - Messages & Appels</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+    <title>ZYNKO - {{ user[0] }}</title>
     <style>
         * {
             margin: 0;
@@ -25,11 +24,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: white;
         }
         
-        h1 {
-            font-size: 28px;
+        .header h1 {
+            color: white;
+            font-size: 24px;
         }
         
         .logout-btn {
@@ -41,413 +40,159 @@
             cursor: pointer;
             text-decoration: none;
             transition: all 0.3s;
+            font-weight: 600;
         }
         
         .logout-btn:hover {
             background: rgba(255, 255, 255, 0.3);
         }
         
-        .main {
+        .container {
             max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 300px 1fr 400px;
+            grid-template-columns: 300px 1fr 350px;
             gap: 20px;
+            align-items: start;
+        }
+        
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
         }
         
         .card {
             background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         }
         
         .card h2 {
             color: #333;
-            margin-bottom: 15px;
-            font-size: 16px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        
+        .card h2::before {
+            font-size: 22px;
+        }
+        
+        .friends-card h2::before { content: \"👥\"; }
+        .profile-card h2::before { content: \"👤\"; }
+        .stats-card h2::before { content: \"📊\"; }
         
         .friends-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            flex: 1;
+            gap: 10px;
+            max-height: 500px;
             overflow-y: auto;
         }
         
         .friend-item {
             padding: 12px;
-            background: #f5f5f5;
+            background: #f8f9fa;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
-            border-left: 3px solid transparent;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .friend-item:hover {
-            background: #efefef;
-            border-left-color: #667eea;
-        }
-        
-        .friend-item.active {
             background: #e3f2fd;
             border-left-color: #667eea;
-            font-weight: 600;
-            color: #667eea;
+            transform: translateX(4px);
         }
         
-        .chat-area {
-            grid-column: 2;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: white;
-            border-radius: 15px;
-            margin-bottom: 15px;
-            min-height: 400px;
-        }
-        
-        .message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            word-wrap: break-word;
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        .message.mine {
-            align-self: flex-end;
-            background: #667eea;
-            color: white;
-        }
-        
-        .message.theirs {
-            align-self: flex-start;
-            background: #f0f0f0;
-            color: #333;
-        }
-        
-        .message-time {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 4px;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .input-area {
-            display: flex;
-            gap: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 15px;
-        }
-        
-        .input-area input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .input-area input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .input-area button {
-            padding: 12px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .input-area button:hover {
-            background: #764ba2;
-        }
-        
-        .call-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .call-btn {
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
+        .friend-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--color);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-        }
-        
-        .call-btn.voice {
-            background: #4CAF50;
             color: white;
-        }
-        
-        .call-btn.video {
-            background: #2196F3;
-            color: white;
-        }
-        
-        .call-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .sidebar-right {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .info-card {
-            background: white;
-            padding: 15px;
-            border-radius: 15px;
-            font-size: 13px;
-            color: #666;
-        }
-        
-        .info-card strong {
-            display: block;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        
-        .code-display {
-            background: #f5f5f5;
-            padding: 12px;
-            border-radius: 8px;
             font-weight: bold;
-            font-family: monospace;
-            color: #667eea;
-            margin-top: 10px;
-            word-break: break-all;
+            font-size: 14px;
         }
         
-        .empty-state {
+        .friend-name {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .no-friends {
             text-align: center;
             color: #999;
-            padding: 40px 20px;
+            padding: 20px;
+            font-size: 14px;
         }
         
-        @media (max-width: 1024px) {
-            .main {
-                grid-template-columns: 1fr;
-            }
-            
-            .chat-area {
-                grid-column: 1;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🔗 ZYNKO - {{ user[0] }}</h1>
-        <a href="/logout" class="logout-btn">Déconnexion</a>
-    </div>
-    
-    <div class="main">
-        <!-- LEFT SIDEBAR -->
-        <div class="card">
-            <h2>👥 Amis</h2>
-            <div class="friends-list">
-                {% if friends %}
-                    {% for friend in friends %}
-                        <div class="friend-item" onclick="selectFriend({{ friend[0] }}, '{{ friend[1] }}')">
-                            {{ friend[1] }}
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="empty-state">
-                        <p>Aucun ami pour le moment 😢</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- CHAT AREA -->
-        <div class="chat-area">
-            <div id="messages" class="messages">
-                <div class="empty-state">Sélectionnez un ami pour commencer</div>
-            </div>
-            
-            <div class="call-buttons" id="callButtons" style="display: none;">
-                <button class="call-btn voice" onclick="initiateCall('voice')">📞 Appel Vocal</button>
-                <button class="call-btn video" onclick="initiateCall('video')">📹 Appel Vidéo</button>
-            </div>
-            
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Écrivez un message..." style="display: none;">
-                <button id="sendBtn" onclick="sendMessage()" style="display: none;">Envoyer</button>
-            </div>
-        </div>
-        
-        <!-- RIGHT SIDEBAR -->
-        <div class="sidebar-right">
-            <div class="card info-card">
-                <strong>📊 Mon Code Ami</strong>
-                <p>Partage ce code avec tes amis pour les ajouter:</p>
-                <div class="code-display">{{ user[1] }}</div>
-            </div>
-            
-            <div class="card info-card">
-                <strong>✉️ Email</strong>
-                <p>{{ user[2] }}</p>
-            </div>
-            
-            <div class="card info-card">
-                <strong>👫 Statistiques</strong>
-                <p>Amis: <strong>{{ friends|length }}</strong></p>
-                <p style="margin-top: 8px;">Messages: <strong id="msgCount">0</strong></p>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        const socket = io();
-        let currentFriendId = null;
-        let currentFriendName = null;
-        const userId = {{ user_id }};
-        
-        socket.on('connect', () => {
-            console.log('Connecte au serveur');
-        });
-        
-        socket.on('new_message', (data) => {
-            if (data.sender_id === currentFriendId || data.receiver_id === currentFriendId) {
-                loadMessages(currentFriendId);
-            }
-        });
-        
-        socket.on('incoming_call', (data) => {
-            console.log('Appel entrant:', data);
-            if (confirm(`${currentFriendName} vous appelle...`)) {
-                socket.emit('accept_call', { room_id: data.room_id });
-                startCall(data.room_id, data.call_type);
-            } else {
-                socket.emit('decline_call', { room_id: data.room_id });
-            }
-        });
-        
-        socket.on('call_accepted', (data) => {
-            console.log('Appel accepte');
-            startCall(data.room_id, 'video');
-        });
-        
-        socket.on('call_declined', () => {
-            alert('Appel décliné');
-        });
-        
-        function selectFriend(friendId, friendName) {
-            currentFriendId = friendId;
-            currentFriendName = friendName;
-            
-            document.querySelectorAll('.friend-item').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.getElementById('callButtons').style.display = 'grid';
-            document.getElementById('messageInput').style.display = 'block';
-            document.getElementById('sendBtn').style.display = 'block';
-            document.getElementById('messageInput').focus();
-            
-            loadMessages(friendId);
+        .add-friend-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
         }
         
-        function loadMessages(friendId) {
-            fetch(`/api/messages/${friendId}`)
-                .then(r => r.json())
-                .then(data => {
-                    const messagesDiv = document.getElementById('messages');
-                    messagesDiv.innerHTML = '';
-                    
-                    data.messages.forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = `message ${msg.is_mine ? 'mine' : 'theirs'}`;
-                        div.innerHTML = `
-                            ${msg.message}
-                            <div class="message-time">${new Date(msg.created_at).toLocaleTimeString()}</div>
-                        `;
-                        messagesDiv.appendChild(div);
-                    });
-                    
-                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                    document.getElementById('msgCount').textContent = data.messages.length;
-                });
+        .add-friend-form input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 12px;
         }
         
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            
-            if (!message || !currentFriendId) return;
-            
-            fetch('/api/send-message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ receiver_id: currentFriendId, message: message })
-            })
-            .then(r => r.json())
-            .then(data => {
-                input.value = '';
-                loadMessages(currentFriendId);
-            });
+        .add-friend-form button {
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
         }
         
-        function initiateCall(callType) {
-            if (!currentFriendId) return;
-            
-            const roomId = `call_${Math.min(userId, currentFriendId)}_${Math.max(userId, currentFriendId)}`;
-            socket.emit('call_user', {
-                receiver_id: currentFriendId,
-                call_type: callType
-            });
-            
-            alert(`Appel ${callType} initialisé avec ${currentFriendName}...`);
+        .add-friend-form button:hover {
+            background: #764ba2;
         }
         
-        function startCall(roomId, callType) {
-            alert(`Appel ${callType} en cours... (Implémentation WebRTC)`);
-            // WebRTC implementation serait ici
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
         
-        document.getElementById('messageInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-    </script>
-</body>
-</html>
+        .info-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+            font-size: 13px;
+        }
+        
+        .copy-btn {
+            background: #e0e0e0;\n            border: none;\n            border-radius: 4px;\n            padding: 4px 8px;\n            cursor: pointer;\n            font-size: 11px;\n            margin-top: 4px;\n            transition: all 0.3s;\n        }\n        \n        .copy-btn:hover {\n            background: #667eea;\n            color: white;\n        }\n        \n        .stats-grid {\n            display: grid;\n            grid-template-columns: 1fr 1fr;\n            gap: 12px;\n        }\n        \n        .stat-box {\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: white;\n            padding: 15px;\n            border-radius: 10px;\n            text-align: center;\n        }\n        \n        .stat-number {\n            font-size: 28px;\n            font-weight: bold;\n            margin-bottom: 5px;\n        }\n        \n        .stat-label {\n            font-size: 12px;\n            opacity: 0.9;\n        }\n        \n        .chat-section {\n            display: flex;\n            flex-direction: column;\n            height: 600px;\n        }\n        \n        .messages-container {\n            flex: 1;\n            overflow-y: auto;\n            padding: 20px;\n            display: flex;\n            flex-direction: column;\n            gap: 12px;\n            margin-bottom: 15px;\n            background: #f8f9fa;\n            border-radius: 15px;\n        }\n        \n        .message {\n            max-width: 70%;\n            padding: 12px 16px;\n            border-radius: 12px;\n            animation: slideIn 0.3s ease-out;\n        }\n        \n        .message.mine {\n            align-self: flex-end;\n            background: #667eea;\n            color: white;\n        }\n        \n        .message.theirs {\n            align-self: flex-start;\n            background: white;\n            color: #333;\n            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\n        }\n        \n        @keyframes slideIn {\n            from {\n                opacity: 0;\n                transform: translateY(10px);\n            }\n            to {\n                opacity: 1;\n                transform: translateY(0);\n            }\n        }\n        \n        .input-area {\n            display: flex;\n            gap: 10px;\n        }\n        \n        .input-area input {\n            flex: 1;\n            padding: 12px;\n            border: 2px solid #e0e0e0;\n            border-radius: 10px;\n            font-size: 14px;\n            transition: all 0.3s;\n        }\n        \n        .input-area input:focus {\n            outline: none;\n            border-color: #667eea;\n        }\n        \n        .input-area button {\n            padding: 12px 20px;\n            background: #667eea;\n            color: white;\n            border: none;\n            border-radius: 10px;\n            cursor: pointer;\n            font-weight: 600;\n            transition: all 0.3s;\n        }\n        \n        .input-area button:hover {\n            background: #764ba2;\n        }\n        \n        .placeholder {\n            text-align: center;\n            color: #999;\n            padding: 40px 20px;\n            font-size: 14px;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"header\">\n        <h1>🔗 ZYNKO - {{ user[0] }}</h1>\n        <a href=\"/logout\" class=\"logout-btn\">Déconnexion</a>\n    </div>\n    \n    <div class=\"container\">\n        <!-- FRIENDS LIST -->\n        <div class=\"card friends-card\">\n            <h2>Amis</h2>\n            <div class=\"friends-list\">\n                {% if friends %}\n                    {% for friend in friends %}\n                        <div class=\"friend-item\" onclick=\"selectFriend({{ friend[0] }}, '{{ friend[1] }}')\">\n                            <div class=\"friend-avatar\" style=\"--color: {{ friend[2] }}\">\n                                {{ friend[1][0].upper() }}\n                            </div>\n                            <span class=\"friend-name\">{{ friend[1] }}</span>\n                        </div>\n                    {% endfor %}\n                {% else %}\n                    <div class=\"no-friends\">Aucun ami pour le moment 😔</div>\n                {% endif %}\n            </div>\n            \n            <div class=\"add-friend-form\">\n                <input type=\"text\" id=\"friendCode\" placeholder=\"Code ami...\" maxlength=\"12\">\n                <form method=\"POST\" action=\"/add_friend\" style=\"display: flex; gap: 8px; width: 100%;\">\n                    <input type=\"text\" name=\"code\" id=\"codeInput\" placeholder=\"Code\" style=\"flex: 1;\" required>\n                    <button type=\"submit\" style=\"padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;\">+</button>\n                </form>\n            </div>\n        </div>\n        \n        <!-- CHAT SECTION -->\n        <div class=\"card\" style=\"display: flex; flex-direction: column; height: 600px;\">\n            <div id=\"chatPlaceholder\" class=\"placeholder\">\n                Sélectionnez un ami pour commencer\n            </div>\n            <div id=\"chatSection\" class=\"chat-section\" style=\"display: none;\">\n                <div id=\"messagesContainer\" class=\"messages-container\"></div>\n                <div class=\"input-area\">\n                    <input type=\"text\" id=\"messageInput\" placeholder=\"Tapez un message...\" onkeypress=\"sendMessageOnEnter(event)\">\n                    <button onclick=\"sendMessage()\">Envoyer</button>\n                </div>\n            </div>\n        </div>\n        \n        <!-- PROFILE SECTION -->\n        <div class=\"card profile-card\">\n            <h2>Mon Code Ami</h2>\n            <div class=\"info-item\">\n                <div class=\"info-label\">📱 Partage ce code</div>\n                <div class=\"info-value\">{{ user[1] }}</div>\n                <button class=\"copy-btn\" onclick=\"copyToClipboard('{{ user[1] }}', this)\">📋 Copier</button>\n            </div>\n            \n            <h2 style=\"margin-top: 20px;\">Email</h2>\n            <div class=\"info-item\">\n                <div class=\"info-label\">✉️ Adresse</div>\n                <div class=\"info-value\">{{ user[2] }}</div>\n            </div>\n            \n            <h2 style=\"margin-top: 20px;\">📊 Statistiques</h2>\n            <div class=\"stats-grid\">\n                <div class=\"stat-box\">\n                    <div class=\"stat-number\">{{ friends|length }}</div>\n                    <div class=\"stat-label\">Amis</div>\n                </div>\n                <div class=\"stat-box\">\n                    <div class=\"stat-number\">0</div>\n                    <div class=\"stat-label\">Messages</div>\n                </div>\n            </div>\n        </div>\n    </div>\n    \n    <script>\n        let selectedFriendId = null;\n        \n        function selectFriend(friendId, friendName) {\n            selectedFriendId = friendId;\n            document.getElementById('chatPlaceholder').style.display = 'none';\n            document.getElementById('chatSection').style.display = 'flex';\n            document.getElementById('messagesContainer').innerHTML = '<div class=\"placeholder\">Chat avec ' + friendName + '</div>';\n        }\n        \n        function copyToClipboard(text, btn) {\n            navigator.clipboard.writeText(text).then(() => {\n                const originalText = btn.textContent;\n                btn.textContent = '✅ Copié!';\n                setTimeout(() => {\n                    btn.textContent = originalText;\n                }, 2000);\n            });\n        }\n        \n        function sendMessage() {\n            const message = document.getElementById('messageInput').value.trim();\n            if (!message || !selectedFriendId) return;\n            \n            const msgEl = document.createElement('div');\n            msgEl.className = 'message mine';\n            msgEl.textContent = message;\n            document.getElementById('messagesContainer').appendChild(msgEl);\n            document.getElementById('messageInput').value = '';\n            document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;\n        }\n        \n        function sendMessageOnEnter(e) {\n            if (e.key === 'Enter') sendMessage();\n        }\n    </script>\n</body>\n</html>\n
