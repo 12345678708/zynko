@@ -39,8 +39,11 @@ def init_db():
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         friend_code TEXT UNIQUE NOT NULL,
+        avatar_color TEXT DEFAULT '#667eea',
+        bio TEXT DEFAULT '',
         email_verified INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
     
@@ -49,6 +52,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         friend_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'friend',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, friend_id),
         FOREIGN KEY(user_id) REFERENCES users(id),
         FOREIGN KEY(friend_id) REFERENCES users(id)
@@ -61,6 +66,7 @@ def init_db():
         sender_id INTEGER NOT NULL,
         receiver_id INTEGER NOT NULL,
         message TEXT NOT NULL,
+        read_status INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(sender_id) REFERENCES users(id),
         FOREIGN KEY(receiver_id) REFERENCES users(id)
@@ -86,7 +92,9 @@ def init_db():
         call_type TEXT NOT NULL,
         status TEXT DEFAULT 'ringing',
         room_id TEXT UNIQUE NOT NULL,
+        duration INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ended_at TIMESTAMP,
         FOREIGN KEY(caller_id) REFERENCES users(id),
         FOREIGN KEY(receiver_id) REFERENCES users(id)
     )
@@ -105,9 +113,9 @@ def send_verification_email(email, code):
         msg = MIMEMultipart()
         msg['From'] = EMAIL_ADDRESS
         msg['To'] = email
-        msg['Subject'] = 'Verification Code - ZYNKO'
+        msg['Subject'] = 'Code de Verification - ZYNKO'
         
-        body = f"""Bienvenue sur ZYNKO!
+        body = f"""Bienvenue sur ZYNKO! 🎉
         
 Votre code de verification est: {code}
 Ce code expire dans 1 heure.
@@ -166,6 +174,10 @@ def hash_pwd(pwd):
 def verify_pwd(pwd, hashed):
     return hash_pwd(pwd) == hashed
 
+def get_random_color():
+    colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#feca57']
+    return random.choice(colors)
+
 # Keep-Alive pour Render
 def keep_alive():
     while True:
@@ -203,14 +215,15 @@ def register():
     
     code = generate_code()
     hashed = hash_pwd(password)
+    avatar_color = get_random_color()
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
     
     try:
         c.execute(
-            "INSERT INTO users (username, email, password, friend_code) VALUES (?, ?, ?, ?)",
-            (username, email, hashed, code)
+            "INSERT INTO users (username, email, password, friend_code, avatar_color) VALUES (?, ?, ?, ?, ?)",
+            (username, email, hashed, code, avatar_color)
         )
         conn.commit()
         user_id = c.lastrowid
@@ -296,7 +309,7 @@ def dashboard():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
     
-    c.execute("SELECT username, friend_code, email FROM users WHERE id=?", (session["user_id"],))
+    c.execute("SELECT username, friend_code, email, avatar_color, bio FROM users WHERE id=?", (session["user_id"],))
     user = c.fetchone()
     
     if not user:
@@ -305,7 +318,7 @@ def dashboard():
         return redirect("/")
     
     c.execute("""
-    SELECT u.id, u.username FROM friends f
+    SELECT u.id, u.username, u.avatar_color FROM friends f
     JOIN users u ON u.id = f.friend_id
     WHERE f.user_id=?
     ORDER BY u.username ASC
@@ -317,7 +330,7 @@ def dashboard():
     return render_template("dashboard.html", user=user, friends=friends, user_id=session["user_id"])
 
 # =====================
-# ADD FRIEND
+# ADD FRIEND / ADD YOURSELF
 # =====================
 @app.route("/add_friend", methods=["POST"])
 def add_friend():
@@ -342,24 +355,61 @@ def add_friend():
     friend_id = friend[0]
     user_id = session["user_id"]
     
-    if user_id == friend_id:
-        conn.close()
-        return "Tu ne peux pas t'ajouter toi-meme"
-    
+    # Permet d'ajouter soi-meme
     c.execute("SELECT * FROM friends WHERE user_id=? AND friend_id=?", (user_id, friend_id))
     if c.fetchone():
         conn.close()
-        return "Deja amis"
+        return "Deja dans vos amis"
     
     try:
         c.execute("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", (user_id, friend_id))
-        c.execute("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)", (friend_id, user_id))
+        if user_id != friend_id:  # Amitie reciproque sauf si c'est soi-meme
+            c.execute("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)", (friend_id, user_id))
         conn.commit()
         conn.close()
         return redirect("/dashboard")
     except Exception as e:
         conn.close()
         return f"Erreur: {str(e)}"
+
+# =====================
+# PROFILE
+# =====================
+@app.route("/api/profile/<int:user_id>")
+def get_profile(user_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Non authentifie"}), 401
+    
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("SELECT username, bio, avatar_color, created_at FROM users WHERE id=?", (user_id,))
+    user = c.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({"error": "Utilisateur non trouve"}), 404
+    
+    return jsonify({
+        "username": user[0],
+        "bio": user[1],
+        "avatar_color": user[2],
+        "created_at": user[3]
+    })
+
+@app.route("/api/update-bio", methods=["POST"])
+def update_bio():
+    if "user_id" not in session:
+        return jsonify({"error": "Non authentifie"}), 401
+    
+    bio = request.json.get("bio", "")[:200]  # Max 200 chars
+    
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET bio=? WHERE id=?", (bio, session["user_id"]))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
 
 # =====================
 # MESSAGES API
@@ -377,7 +427,7 @@ def get_messages(friend_id):
     SELECT id, sender_id, message, created_at FROM messages
     WHERE (sender_id=? AND receiver_id=?) OR (sender_id=? AND receiver_id=?)
     ORDER BY created_at ASC
-    LIMIT 50
+    LIMIT 100
     """, (user_id, friend_id, friend_id, user_id))
     
     messages = c.fetchall()
@@ -407,6 +457,9 @@ def send_message():
     
     if not message or not receiver_id:
         return jsonify({"error": "Donnees manquantes"}), 400
+    
+    if len(message) > 1000:
+        return jsonify({"error": "Message trop long"}), 400
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -442,12 +495,12 @@ def handle_connect():
 def handle_call(data):
     caller_id = session.get('user_id')
     receiver_id = data.get('receiver_id')
-    call_type = data.get('call_type')  # 'video' ou 'voice'
+    call_type = data.get('call_type')
     
     if not caller_id or not receiver_id:
         return
     
-    room_id = f"call_{min(caller_id, receiver_id)}_{max(caller_id, receiver_id)}"
+    room_id = f"call_{min(caller_id, receiver_id)}_{max(caller_id, receiver_id)}_{int(time.time())}"
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -458,7 +511,6 @@ def handle_call(data):
     conn.commit()
     conn.close()
     
-    # Notifier le recepteur
     socketio.emit('incoming_call', {
         'caller_id': caller_id,
         'call_type': call_type,
