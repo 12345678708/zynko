@@ -122,6 +122,15 @@
             margin-bottom: 16px;
             font-size: 13px;
         }
+        
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -136,9 +145,10 @@
         <!-- LOGIN -->
         <div id="login" class="tab-content active">
             <form method="POST" action="/login">
+                <div id="loginError"></div>
                 <div class="form-group">
                     <label>Pseudo</label>
-                    <input type="text" name="username" required>
+                    <input type="text" name="username" required autofocus>
                 </div>
                 <div class="form-group">
                     <label>Mot de passe</label>
@@ -151,8 +161,9 @@
         <!-- REGISTER -->
         <div id="register" class="tab-content">
             <form method="POST" action="/register">
+                <div id="registerError"></div>
                 <div class="form-group">
-                    <label>Pseudo (min 3 caracteres)</label>
+                    <label>Pseudo (min 3 caractères)</label>
                     <input type="text" name="username" required>
                 </div>
                 <div class="form-group">
@@ -160,7 +171,7 @@
                     <input type="email" name="email" required>
                 </div>
                 <div class="form-group">
-                    <label>Mot de passe (min 6 caracteres)</label>
+                    <label>Mot de passe (min 6 caractères)</label>
                     <input type="password" name="password" required>
                 </div>
                 <button type="submit">S'inscrire</button>
@@ -174,6 +185,15 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
             event.target.classList.add('active');
+        }
+        
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('registered')) {
+            const msg = document.createElement('div');
+            msg.className = 'success';
+            msg.textContent = '✅ Inscriptionn réussie! Vérifiez votre email.';
+            document.getElementById('loginError').appendChild(msg);
+            switchTab('login');
         }
     </script>
 </body>

@@ -5,9 +5,6 @@ import random
 import string
 import hashlib
 from datetime import datetime, timedelta
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
 import threading
@@ -16,14 +13,8 @@ import time
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "zynko_secret_key_2026_ultra_secure"
-socketio = SocketIO(app, cors_allowed_origins="*")
-
-# EMAIL CONFIG
-EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS', 'noreply@zynko.com')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', '')
-SMTP_SERVER = 'smtp.gmail.com'
-SMTP_PORT = 587
+app.secret_key = "zynko_secret_key_2026_ultra_secure_v2"
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # =====================
 # DATABASE INIT
@@ -84,61 +75,10 @@ def init_db():
     )
     """)
     
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS active_calls (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        caller_id INTEGER NOT NULL,
-        receiver_id INTEGER NOT NULL,
-        call_type TEXT NOT NULL,
-        status TEXT DEFAULT 'ringing',
-        room_id TEXT UNIQUE NOT NULL,
-        duration INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        ended_at TIMESTAMP,
-        FOREIGN KEY(caller_id) REFERENCES users(id),
-        FOREIGN KEY(receiver_id) REFERENCES users(id)
-    )
-    """)
-    
     conn.commit()
     conn.close()
 
 init_db()
-
-# =====================
-# EMAIL FUNCTIONS
-# =====================
-def send_verification_email(email, code):
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = EMAIL_ADDRESS
-        msg['To'] = email
-        msg['Subject'] = 'Code de Verification - ZYNKO'
-        
-        body = f"""Bienvenue sur ZYNKO! 🎉
-        
-Votre code de verification est: {code}
-Ce code expire dans 1 heure.
-
-Ne partagez pas ce code avec quelqu'un d'autre.
-        """
-        
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # Pour developpement, on affiche juste le code
-        print(f"Code de verification pour {email}: {code}")
-        
-        # En production, dcommenter:
-        # server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        # server.starttls()
-        # server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        # server.send_message(msg)
-        # server.quit()
-        
-        return True
-    except Exception as e:
-        print(f"Erreur envoi email: {str(e)}")
-        return False
 
 # =====================
 # UTILS
@@ -175,7 +115,7 @@ def verify_pwd(pwd, hashed):
     return hash_pwd(pwd) == hashed
 
 def get_random_color():
-    colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#feca57']
+    colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#feca57', '#00d4ff']
     return random.choice(colors)
 
 # Keep-Alive pour Render
@@ -183,9 +123,9 @@ def keep_alive():
     while True:
         try:
             time.sleep(840)  # 14 minutes
-            print("[KEEP-ALIVE] System running...")
-        except:
-            pass
+            print("[KEEP-ALIVE] System alive")
+        except Exception as e:
+            print(f"Keep-alive error: {e}")
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
@@ -204,14 +144,15 @@ def home():
 @app.route("/register", methods=["POST"])
 def register():
     username = request.form.get("username", "").strip()
-    email = request.form.get("email", "").strip()
+    email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
     
-    if len(username) < 3 or len(password) < 6:
-        return "Erreur: Username min 3 chars, Password min 6 chars"
-    
+    if len(username) < 3:
+        return "Erreur: Username min 3 chars", 400
+    if len(password) < 6:
+        return "Erreur: Password min 6 chars", 400
     if "@" not in email:
-        return "Email invalide"
+        return "Email invalide", 400
     
     code = generate_code()
     hashed = hash_pwd(password)
@@ -229,18 +170,17 @@ def register():
         user_id = c.lastrowid
         conn.close()
         
-        # Generer code de verification
         verification_code = generate_verification_code(user_id)
-        send_verification_email(email, verification_code)
+        print(f"[VERIFY] Code pour {email}: {verification_code}")
         
         return redirect(f"/verify-email?user_id={user_id}")
     except Exception as e:
         conn.close()
         if "username" in str(e).lower():
-            return "Username deja pris"
+            return "Username déjà pris", 400
         elif "email" in str(e).lower():
-            return "Email deja utilise"
-        return f"Erreur: {str(e)}"
+            return "Email déjà utilisé", 400
+        return f"Erreur: {str(e)}", 500
 
 # =====================
 # VERIFY EMAIL
@@ -248,12 +188,28 @@ def register():
 @app.route("/verify-email")
 def verify_email_page():
     user_id = request.args.get('user_id')
-    return render_template("verify_email.html", user_id=user_id)
+    
+    # Récupérer le code pour l'afficher
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute(
+        "SELECT code FROM verification_codes WHERE user_id=? AND used=0 ORDER BY expires_at DESC LIMIT 1",
+        (user_id,)
+    )
+    result = c.fetchone()
+    conn.close()
+    
+    verification_code = result[0] if result else "000000"
+    
+    return render_template("verify_email.html", user_id=user_id, verification_code=verification_code)
 
 @app.route("/verify-code", methods=["POST"])
 def verify_code():
     user_id = request.form.get("user_id")
     code = request.form.get("code", "").strip()
+    
+    if not user_id or not code:
+        return "Données manquantes", 400
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -267,14 +223,14 @@ def verify_code():
     
     if not verify_record:
         conn.close()
-        return "Code invalide ou expire"
+        return "Code invalide ou expiré", 400
     
     c.execute("UPDATE verification_codes SET used=1 WHERE id=?", (verify_record[0],))
     c.execute("UPDATE users SET email_verified=1 WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
     
-    return redirect("/")
+    return redirect("/?verified=success")
 
 # =====================
 # LOGIN
@@ -284,6 +240,9 @@ def login():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
     
+    if not username or not password:
+        return "Remplissez tous les champs", 400
+    
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
     c.execute("SELECT id, password, email_verified FROM users WHERE username=?", (username,))
@@ -292,11 +251,11 @@ def login():
     
     if user and verify_pwd(password, user[1]):
         if not user[2]:
-            return "Email non verifie. Verifiez votre email!"
+            return "Email non vérifié. Vérifiez votre email!", 403
         session["user_id"] = user[0]
         return redirect("/dashboard")
     
-    return "Login incorrect"
+    return "Login incorrect", 401
 
 # =====================
 # DASHBOARD
@@ -330,7 +289,7 @@ def dashboard():
     return render_template("dashboard.html", user=user, friends=friends, user_id=session["user_id"])
 
 # =====================
-# ADD FRIEND / ADD YOURSELF
+# ADD FRIEND
 # =====================
 @app.route("/add_friend", methods=["POST"])
 def add_friend():
@@ -340,7 +299,7 @@ def add_friend():
     code = request.form.get("code", "").upper().strip()
     
     if not code:
-        return "Code vide"
+        return "Code vide", 400
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -350,27 +309,26 @@ def add_friend():
     
     if not friend:
         conn.close()
-        return "Code non trouve"
+        return "Code non trouvé", 404
     
     friend_id = friend[0]
     user_id = session["user_id"]
     
-    # Permet d'ajouter soi-meme
     c.execute("SELECT * FROM friends WHERE user_id=? AND friend_id=?", (user_id, friend_id))
     if c.fetchone():
         conn.close()
-        return "Deja dans vos amis"
+        return "Déjà dans vos amis", 400
     
     try:
         c.execute("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", (user_id, friend_id))
-        if user_id != friend_id:  # Amitie reciproque sauf si c'est soi-meme
+        if user_id != friend_id:
             c.execute("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)", (friend_id, user_id))
         conn.commit()
         conn.close()
         return redirect("/dashboard")
     except Exception as e:
         conn.close()
-        return f"Erreur: {str(e)}"
+        return f"Erreur: {str(e)}", 500
 
 # =====================
 # PROFILE
@@ -378,7 +336,7 @@ def add_friend():
 @app.route("/api/profile/<int:user_id>")
 def get_profile(user_id):
     if "user_id" not in session:
-        return jsonify({"error": "Non authentifie"}), 401
+        return jsonify({"error": "Non authentifié"}), 401
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -387,21 +345,16 @@ def get_profile(user_id):
     conn.close()
     
     if not user:
-        return jsonify({"error": "Utilisateur non trouve"}), 404
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
     
-    return jsonify({
-        "username": user[0],
-        "bio": user[1],
-        "avatar_color": user[2],
-        "created_at": user[3]
-    })
+    return jsonify({"username": user[0], "bio": user[1], "avatar_color": user[2], "created_at": user[3]})
 
 @app.route("/api/update-bio", methods=["POST"])
 def update_bio():
     if "user_id" not in session:
-        return jsonify({"error": "Non authentifie"}), 401
+        return jsonify({"error": "Non authentifié"}), 401
     
-    bio = request.json.get("bio", "")[:200]  # Max 200 chars
+    bio = request.json.get("bio", "")[:200]
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
@@ -412,12 +365,12 @@ def update_bio():
     return jsonify({"success": True})
 
 # =====================
-# MESSAGES API
+# MESSAGES
 # =====================
 @app.route("/api/messages/<int:friend_id>")
 def get_messages(friend_id):
     if "user_id" not in session:
-        return jsonify({"error": "Non authentifie"}), 401
+        return jsonify({"error": "Non authentifié"}), 401
     
     user_id = session["user_id"]
     conn = sqlite3.connect("database.db")
@@ -433,63 +386,41 @@ def get_messages(friend_id):
     messages = c.fetchall()
     conn.close()
     
-    return jsonify({
-        "messages": [
-            {
-                "id": m[0],
-                "sender_id": m[1],
-                "message": m[2],
-                "created_at": m[3],
-                "is_mine": m[1] == user_id
-            }
-            for m in messages
-        ]
-    })
+    return jsonify({"messages": [{"id": m[0], "sender_id": m[1], "message": m[2], "created_at": m[3], "is_mine": m[1] == user_id} for m in messages]})
 
 @app.route("/api/send-message", methods=["POST"])
 def send_message():
     if "user_id" not in session:
-        return jsonify({"error": "Non authentifie"}), 401
+        return jsonify({"error": "Non authentifié"}), 401
     
     user_id = session["user_id"]
     receiver_id = request.json.get("receiver_id")
-    message = request.json.get("message")
+    message = request.json.get("message", "").strip()
     
     if not message or not receiver_id:
-        return jsonify({"error": "Donnees manquantes"}), 400
-    
+        return jsonify({"error": "Données manquantes"}), 400
     if len(message) > 1000:
         return jsonify({"error": "Message trop long"}), 400
     
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    
-    c.execute(
-        "INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)",
-        (user_id, receiver_id, message)
-    )
+    c.execute("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)", (user_id, receiver_id, message))
     conn.commit()
     msg_id = c.lastrowid
     conn.close()
     
-    # Envoyer via WebSocket
-    socketio.emit('new_message', {
-        'sender_id': user_id,
-        'receiver_id': receiver_id,
-        'message': message,
-        'id': msg_id
-    }, room=f"user_{receiver_id}")
+    socketio.emit('new_message', {'sender_id': user_id, 'receiver_id': receiver_id, 'message': message, 'id': msg_id}, room=f"user_{receiver_id}")
     
     return jsonify({"success": True, "id": msg_id})
 
 # =====================
-# SOCKETIO - APPELS
+# SOCKETIO
 # =====================
 @socketio.on('connect')
 def handle_connect():
     if 'user_id' in session:
         join_room(f"user_{session['user_id']}")
-        emit('connected', {'data': 'Connecte'})
+        emit('connected', {'data': 'Connecté'})
 
 @socketio.on('call_user')
 def handle_call(data):
@@ -501,72 +432,7 @@ def handle_call(data):
         return
     
     room_id = f"call_{min(caller_id, receiver_id)}_{max(caller_id, receiver_id)}_{int(time.time())}"
-    
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute(
-        "INSERT INTO active_calls (caller_id, receiver_id, call_type, room_id) VALUES (?, ?, ?, ?)",
-        (caller_id, receiver_id, call_type, room_id)
-    )
-    conn.commit()
-    conn.close()
-    
-    socketio.emit('incoming_call', {
-        'caller_id': caller_id,
-        'call_type': call_type,
-        'room_id': room_id
-    }, room=f"user_{receiver_id}")
-
-@socketio.on('accept_call')
-def handle_accept_call(data):
-    room_id = data.get('room_id')
-    user_id = session.get('user_id')
-    
-    join_room(room_id)
-    socketio.emit('call_accepted', {'room_id': room_id}, room=room_id)
-
-@socketio.on('decline_call')
-def handle_decline_call(data):
-    room_id = data.get('room_id')
-    
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute("DELETE FROM active_calls WHERE room_id=?", (room_id,))
-    conn.commit()
-    conn.close()
-    
-    socketio.emit('call_declined', {'room_id': room_id}, room=room_id)
-
-@socketio.on('end_call')
-def handle_end_call(data):
-    room_id = data.get('room_id')
-    leave_room(room_id)
-    
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute("DELETE FROM active_calls WHERE room_id=?", (room_id,))
-    conn.commit()
-    conn.close()
-    
-    socketio.emit('call_ended', {'room_id': room_id}, room=room_id)
-
-@socketio.on('webrtc_offer')
-def handle_webrtc_offer(data):
-    room_id = data.get('room_id')
-    offer = data.get('offer')
-    socketio.emit('webrtc_offer', {'offer': offer}, room=room_id, skip_sid=request.sid)
-
-@socketio.on('webrtc_answer')
-def handle_webrtc_answer(data):
-    room_id = data.get('room_id')
-    answer = data.get('answer')
-    socketio.emit('webrtc_answer', {'answer': answer}, room=room_id, skip_sid=request.sid)
-
-@socketio.on('webrtc_ice_candidate')
-def handle_ice_candidate(data):
-    room_id = data.get('room_id')
-    candidate = data.get('candidate')
-    socketio.emit('webrtc_ice_candidate', {'candidate': candidate}, room=room_id, skip_sid=request.sid)
+    socketio.emit('incoming_call', {'caller_id': caller_id, 'call_type': call_type, 'room_id': room_id}, room=f"user_{receiver_id}")
 
 # =====================
 # LOGOUT
@@ -577,4 +443,4 @@ def logout():
     return redirect("/")
 
 if __name__ == "__main__":
-    socketio.run(app, host='0.0.0.0', port=10000, debug=False)
+    socketio.run(app, host='0.0.0.0', port=10000, debug=False, allow_unsafe_werkzeug=True)
