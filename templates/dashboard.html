@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ZYNKO - Dashboard</title>
+    <title>ZYNKO - Messages & Appels</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -19,7 +20,7 @@
         }
         
         .header {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto 30px;
             display: flex;
             justify-content: space-between;
@@ -47,165 +48,229 @@
         }
         
         .main {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 30px;
+            grid-template-columns: 300px 1fr 400px;
+            gap: 20px;
         }
         
         .card {
             background: white;
             border-radius: 15px;
-            padding: 25px;
+            padding: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
         }
         
         .card h2 {
             color: #333;
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-        
-        .code-display {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
             margin-bottom: 15px;
-            font-weight: bold;
-            font-size: 18px;
-            letter-spacing: 2px;
-        }
-        
-        .code-display code {
-            color: #667eea;
-        }
-        
-        .copy-btn {
-            width: 100%;
-            padding: 10px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
-        
-        .copy-btn:hover {
-            background: #764ba2;
-        }
-        
-        .add-friend-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .add-friend-form input {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        
-        .add-friend-form button {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .add-friend-form button:hover {
-            background: #764ba2;
+            font-size: 16px;
         }
         
         .friends-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
+            flex: 1;
+            overflow-y: auto;
         }
         
         .friend-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: #f9f9f9;
+            padding: 12px;
+            background: #f5f5f5;
             border-radius: 10px;
-            border-left: 4px solid #667eea;
+            cursor: pointer;
             transition: all 0.3s;
+            border-left: 3px solid transparent;
         }
         
         .friend-item:hover {
-            background: #f0f0f0;
+            background: #efefef;
+            border-left-color: #667eea;
         }
         
-        .friend-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+        .friend-item.active {
+            background: #e3f2fd;
+            border-left-color: #667eea;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .chat-area {
+            grid-column: 2;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            min-height: 400px;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .message.mine {
+            align-self: flex-end;
             background: #667eea;
             color: white;
+        }
+        
+        .message.theirs {
+            align-self: flex-start;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+        }
+        
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .input-area input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .input-area button {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .input-area button:hover {
+            background: #764ba2;
+        }
+        
+        .call-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .call-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            margin-right: 15px;
+            gap: 8px;
         }
         
-        .friend-name {
-            flex: 1;
-            font-weight: 600;
+        .call-btn.voice {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .call-btn.video {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .call-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sidebar-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .info-card strong {
+            display: block;
             color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .code-display {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-family: monospace;
+            color: #667eea;
+            margin-top: 10px;
+            word-break: break-all;
         }
         
         .empty-state {
             text-align: center;
+            color: #999;
             padding: 40px 20px;
-            color: #999;
         }
         
-        .empty-state p {
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .stat-box {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-        
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .main {
                 grid-template-columns: 1fr;
+            }
+            
+            .chat-area {
+                grid-column: 1;
             }
         }
     </style>
@@ -217,63 +282,172 @@
     </div>
     
     <div class="main">
-        <!-- SIDEBAR -->
-        <div>
-            <div class="card">
-                <h2>📱 Code Ami</h2>
-                <div class="code-display">
-                    <code>{{ user[1] }}</code>
-                </div>
-                <button class="copy-btn" onclick="copyCode('{{ user[1] }}')">📋 Copier</button>
-                
-                <h2 style="margin-top: 25px;">➕ Ajouter Ami</h2>
-                <form method="POST" action="/add_friend" class="add-friend-form" style="flex-direction: column;">
-                    <input type="text" name="code" placeholder="ZYN-XXXXX" maxlength="10" required>
-                    <button type="submit">Ajouter</button>
-                </form>
-                
-                <h2 style="margin-top: 25px;">📊 Stats</h2>
-                <div class="stats">
-                    <div class="stat-box">
-                        <div class="stat-number">{{ friends|length }}</div>
-                        <div class="stat-label">Amis</div>
+        <!-- LEFT SIDEBAR -->
+        <div class="card">
+            <h2>👥 Amis</h2>
+            <div class="friends-list">
+                {% if friends %}
+                    {% for friend in friends %}
+                        <div class="friend-item" onclick="selectFriend({{ friend[0] }}, '{{ friend[1] }}')">
+                            {{ friend[1] }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <p>Aucun ami pour le moment 😢</p>
                     </div>
-                    <div class="stat-box">
-                        <div class="stat-number">{{ friends|length }}</div>
-                        <div class="stat-label">En ligne</div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
         
-        <!-- FRIENDS LIST -->
-        <div>
-            <div class="card">
-                <h2>👥 Vos Amis</h2>
-                {% if friends %}
-                    <div class="friends-list">
-                        {% for friend in friends %}
-                            <div class="friend-item">
-                                <div class="friend-avatar">{{ friend[1][0].upper() }}</div>
-                                <div class="friend-name">{{ friend[1] }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <p>Aucun ami pour le moment... 😢</p>
-                        <p>Commence par partager ton code avec quelqu'un!</p>
-                    </div>
-                {% endif %}
+        <!-- CHAT AREA -->
+        <div class="chat-area">
+            <div id="messages" class="messages">
+                <div class="empty-state">Sélectionnez un ami pour commencer</div>
+            </div>
+            
+            <div class="call-buttons" id="callButtons" style="display: none;">
+                <button class="call-btn voice" onclick="initiateCall('voice')">📞 Appel Vocal</button>
+                <button class="call-btn video" onclick="initiateCall('video')">📹 Appel Vidéo</button>
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="Écrivez un message..." style="display: none;">
+                <button id="sendBtn" onclick="sendMessage()" style="display: none;">Envoyer</button>
+            </div>
+        </div>
+        
+        <!-- RIGHT SIDEBAR -->
+        <div class="sidebar-right">
+            <div class="card info-card">
+                <strong>📊 Mon Code Ami</strong>
+                <p>Partage ce code avec tes amis pour les ajouter:</p>
+                <div class="code-display">{{ user[1] }}</div>
+            </div>
+            
+            <div class="card info-card">
+                <strong>✉️ Email</strong>
+                <p>{{ user[2] }}</p>
+            </div>
+            
+            <div class="card info-card">
+                <strong>👫 Statistiques</strong>
+                <p>Amis: <strong>{{ friends|length }}</strong></p>
+                <p style="margin-top: 8px;">Messages: <strong id="msgCount">0</strong></p>
             </div>
         </div>
     </div>
     
     <script>
-        function copyCode(code) {
-            navigator.clipboard.writeText(code);
-            alert('Code copié! ✅');
+        const socket = io();
+        let currentFriendId = null;
+        let currentFriendName = null;
+        const userId = {{ user_id }};
+        
+        socket.on('connect', () => {
+            console.log('Connecte au serveur');
+        });
+        
+        socket.on('new_message', (data) => {
+            if (data.sender_id === currentFriendId || data.receiver_id === currentFriendId) {
+                loadMessages(currentFriendId);
+            }
+        });
+        
+        socket.on('incoming_call', (data) => {
+            console.log('Appel entrant:', data);
+            if (confirm(`${currentFriendName} vous appelle...`)) {
+                socket.emit('accept_call', { room_id: data.room_id });
+                startCall(data.room_id, data.call_type);
+            } else {
+                socket.emit('decline_call', { room_id: data.room_id });
+            }
+        });
+        
+        socket.on('call_accepted', (data) => {
+            console.log('Appel accepte');
+            startCall(data.room_id, 'video');
+        });
+        
+        socket.on('call_declined', () => {
+            alert('Appel décliné');
+        });
+        
+        function selectFriend(friendId, friendName) {
+            currentFriendId = friendId;
+            currentFriendName = friendName;
+            
+            document.querySelectorAll('.friend-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('callButtons').style.display = 'grid';
+            document.getElementById('messageInput').style.display = 'block';
+            document.getElementById('sendBtn').style.display = 'block';
+            document.getElementById('messageInput').focus();
+            
+            loadMessages(friendId);
         }
+        
+        function loadMessages(friendId) {
+            fetch(`/api/messages/${friendId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const messagesDiv = document.getElementById('messages');
+                    messagesDiv.innerHTML = '';
+                    
+                    data.messages.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = `message ${msg.is_mine ? 'mine' : 'theirs'}`;
+                        div.innerHTML = `
+                            ${msg.message}
+                            <div class="message-time">${new Date(msg.created_at).toLocaleTimeString()}</div>
+                        `;
+                        messagesDiv.appendChild(div);
+                    });
+                    
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    document.getElementById('msgCount').textContent = data.messages.length;
+                });
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentFriendId) return;
+            
+            fetch('/api/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receiver_id: currentFriendId, message: message })
+            })
+            .then(r => r.json())
+            .then(data => {
+                input.value = '';
+                loadMessages(currentFriendId);
+            });
+        }
+        
+        function initiateCall(callType) {
+            if (!currentFriendId) return;
+            
+            const roomId = `call_${Math.min(userId, currentFriendId)}_${Math.max(userId, currentFriendId)}`;
+            socket.emit('call_user', {
+                receiver_id: currentFriendId,
+                call_type: callType
+            });
+            
+            alert(`Appel ${callType} initialisé avec ${currentFriendName}...`);
+        }
+        
+        function startCall(roomId, callType) {
+            alert(`Appel ${callType} en cours... (Implémentation WebRTC)`);
+            // WebRTC implementation serait ici
+        }
+        
+        document.getElementById('messageInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>

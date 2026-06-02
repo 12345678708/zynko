@@ -1,149 +1,149 @@
-{% extends "base.html" %}
-
-{% block title %}Vérification Email{% endblock %}
-
-{% block content %}
-<div class="verify-container">
-    <div class="verify-box">
-        <div class="verify-header">
-            <i class="fas fa-envelope"></i>
-            <h2>Vérifiez votre email</h2>
-            <p>Un code de vérification a été envoyé à votre adresse email</p>
-        </div>
-
-        <form method="POST" action="/verify-code" class="verify-form">
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vérifier Email - ZYNKO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 18px;
+            letter-spacing: 3px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            color: #1976d2;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        
+        .back-link {
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📧</div>
+        <h1>Vérifiez votre Email</h1>
+        <p>Un code de vérification a été envoyé à votre adresse email. Entrez le code pour continuer.</p>
+        
+        <form method="POST" action="/verify-code">
             <input type="hidden" name="user_id" value="{{ user_id }}">
             
             <div class="form-group">
-                <label>Code de vérification</label>
-                <input type="text" name="code" placeholder="000000" maxlength="6" required>
-                <p class="info">Entrez le code à 6 chiffres</p>
+                <label>Code de Vérification</label>
+                <input type="text" name="code" placeholder="000000" maxlength="6" inputmode="numeric" required autofocus>
             </div>
             
-            <button type="submit" class="btn-primary">
-                <i class="fas fa-check"></i> Vérifier
-            </button>
+            <button type="submit">✓ Vérifier</button>
             
-            <p class="expires">Le code expire dans 1 heure</p>
+            <div class="info">
+                ⏰ Le code expire dans 1 heure
+            </div>
+            
+            <div class="back-link">
+                <a href="/">← Retour à l'accueil</a>
+            </div>
         </form>
     </div>
-</div>
-
-<style>
-.verify-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 20px;
-}
-
-.verify-box {
-    background: white;
-    border-radius: 20px;
-    padding: 40px 30px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    max-width: 400px;
-    animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.verify-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.verify-header i {
-    font-size: 48px;
-    color: #667eea;
-    margin-bottom: 15px;
-}
-
-.verify-header h2 {
-    color: #333;
-    margin: 10px 0;
-}
-
-.verify-header p {
-    color: #666;
-    font-size: 14px;
-}
-
-.verify-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.form-group input {
-    padding: 14px 16px;
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    font-size: 18px;
-    letter-spacing: 2px;
-    text-align: center;
-    transition: all 0.3s;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.info {
-    font-size: 12px;
-    color: #999;
-    margin-top: 8px;
-}
-
-.btn-primary {
-    padding: 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-}
-
-.expires {
-    text-align: center;
-    font-size: 12px;
-    color: #999;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-</style>
-{% endblock %}
+</body>
+</html>
