@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-  <h2>Bonjour {{ user.username if user else 'Utilisateur' }}</h2>
+  <h2>Bonjour {{ user.username }}</h2>
   <div class="row">
     <div class="col-md-6">
       <h4>Chat</h4>
@@ -29,7 +29,8 @@
     const SOCKET_URL = location.origin;
     const socket = io(SOCKET_URL);
     const room = "global";
-    const username = "{{ user.username if user else 'guest' }}";
+    const username = "{{ user.username }}";
+    // join room
     socket.emit("join", {room, username});
 
     // chat
@@ -53,33 +54,32 @@
       chatEl.appendChild(el);
     });
 
-    // WebRTC signaling prototype
+    // WebRTC simple signaling using socket (prototype, P2P)
     let pc;
     const cfg = {iceServers: [{urls: "stun:stun.l.google.com:19302"}]};
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
     document.getElementById("startCall").onclick = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-        localVideo.srcObject = stream;
-        pc = new RTCPeerConnection(cfg);
-        stream.getTracks().forEach(t => pc.addTrack(t, stream));
-        pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
-        pc.onicecandidate = e => { if (e.candidate) socket.emit("webrtc_signal", {room, from: username, type: "ice", candidate: e.candidate}); };
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit("webrtc_signal", {room, from: username, type: "offer", sdp: offer});
-      } catch (err) {
-        console.error('getUserMedia error', err);
-        alert('Impossible d\'accéder à la caméra / micro.');
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+      localVideo.srcObject = stream;
+      pc = new RTCPeerConnection(cfg);
+      stream.getTracks().forEach(t => pc.addTrack(t, stream));
+      pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
+      pc.onicecandidate = e => {
+        if (e.candidate) socket.emit("webrtc_signal", {room, from: username, type: "ice", candidate: e.candidate});
+      };
+      // create offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit("webrtc_signal", {room, from: username, type: "offer", sdp: offer});
     };
-
     socket.on("webrtc_signal", async (data) => {
       if (!pc) {
         pc = new RTCPeerConnection(cfg);
         pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
-        pc.onicecandidate = e => { if (e.candidate) socket.emit("webrtc_signal", {room, from: username, type: "ice", candidate: e.candidate}); };
+        pc.onicecandidate = e => {
+          if (e.candidate) socket.emit("webrtc_signal", {room, from: username, type: "ice", candidate: e.candidate});
+        };
       }
       if (data.type === "offer") {
         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -92,13 +92,20 @@
       } else if (data.type === "answer") {
         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
       } else if (data.type === "ice" && data.candidate) {
-        try { await pc.addIceCandidate(data.candidate); } catch(e){ console.warn('ICE add failed', e); }
+        try {
+          await pc.addIceCandidate(data.candidate);
+        } catch (e) {
+          console.warn("ICE add failed", e);
+        }
       }
     });
 
     document.getElementById("hangup").onclick = () => {
-      if (pc) { pc.close(); pc = null; }
-      if (localVideo.srcObject) localVideo.srcObject.getTracks().forEach(t => t.stop());
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      localVideo.srcObject && localVideo.srcObject.getTracks().forEach(t => t.stop());
       remoteVideo.srcObject = null;
     };
   </script>
