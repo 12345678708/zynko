@@ -48,7 +48,7 @@ def create_app():
                     if next_decoded == decoded:
                         break
                     decoded = next_decoded
-                cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
+                cleaned = decoded.replace('%22', '').replace('%27', '').replace('\"', '').replace("'", '')
                 qs = request.query_string.decode() if request.query_string else ""
                 target = f"{cleaned}?{qs}" if qs else cleaned
                 app.logger.info("RAW sanitize redirect: %s -> %s", raw_path, target)
@@ -62,7 +62,7 @@ def create_app():
                     break
                 decoded = nxt
             if ('%22' in decoded) or ('%27' in decoded) or ('\"' in decoded) or ("\'" in decoded) or ('"' in decoded) or ("'" in decoded):
-                cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
+                cleaned = decoded.replace('%22', '').replace('%27', '').replace('\"', '').replace("'", '')
                 qs = request.query_string.decode() if request.query_string else ""
                 target = f"{cleaned}?{qs}" if qs else cleaned
                 app.logger.info("sanitize_path redirect: %s -> %s", request.path, target)
@@ -135,3 +135,17 @@ def create_app():
 
 # expose app and socketio for gunicorn
 app = create_app()
+
+# Attempt to run DB migrations automatically on startup to avoid missing-tables errors in production.
+# This is idempotent and safe for most setups, and will log failures without preventing the app from starting.
+try:
+    from flask_migrate import upgrade as _upgrade
+    with app.app_context():
+        try:
+            _upgrade()
+            app.logger.info('Automatic DB migrations applied on startup')
+        except Exception as _e:
+            app.logger.warning('Automatic DB migration failed: %s', _e)
+except Exception as ex:
+    # Migration package might not be available in some environments; don't fail startup.
+    app.logger.debug('flask_migrate.upgrade not available: %s', ex)
