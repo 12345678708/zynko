@@ -39,14 +39,12 @@ def create_app():
                     break
                 decoded = next_decoded
 
-            # Remove common quote encodings and literal quotes
-            cleaned = decoded.replace('%22', '').replace('"', '').replace("'", '').replace('&quot;', '')
-
-            # If path changed, redirect to cleaned path (preserve query string)
-            if cleaned != decoded:
+            # If decoded contains quote encodings or literal quotes, clean and redirect
+            if ('%22' in decoded) or ('%27' in decoded) or ('\"' in decoded) or ('\'' in decoded) or ('"' in decoded) or ("'" in decoded):
+                cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
                 qs = request.query_string.decode() if request.query_string else ""
                 target = f"{cleaned}?{qs}" if qs else cleaned
-                app.logger.info("Sanitizing bad path %s -> %s", raw_path, target)
+                app.logger.info("sanitize_path redirect: %s -> %s", raw_path, target)
                 return redirect(target, code=301)
         except Exception as e:
             app.logger.debug('sanitize_path error: %s', e)
@@ -67,7 +65,27 @@ def create_app():
 
     @app.errorhandler(404)
     def not_found(e):
-        # simple HTML page for 404
+        try:
+            path = request.path or ""
+            # If path contains encoded or literal quotes, try to clean & redirect
+            if '%22' in path or '%27' in path or '"' in path or "'" in path:
+                decoded = path
+                for _ in range(3):
+                    nxt = unquote(decoded)
+                    if nxt == decoded:
+                        break
+                    decoded = nxt
+                cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
+                if cleaned == "":
+                    cleaned = "/"
+                qs = request.query_string.decode() if request.query_string else ""
+                target = f"{cleaned}?{qs}" if qs else cleaned
+                app.logger.info("404 fallback redirect: %s -> %s", path, target)
+                return redirect(target, code=301)
+        except Exception as ex:
+            app.logger.debug('404 fallback error: %s', ex)
+
+        # default behavior: render 404 page
         try:
             return render_template('404.html'), 404
         except Exception:
