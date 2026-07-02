@@ -1,198 +1,105 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-    <title>ZYNKO - {{ user[0] }}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .header {
-            max-width: 1400px;
-            margin: 0 auto 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header h1 {
-            color: white;
-            font-size: 24px;
-        }
-        
-        .logout-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 300px 1fr 350px;
-            gap: 20px;
-            align-items: start;
-        }
-        
-        @media (max-width: 1024px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        }
-        
-        .card h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .card h2::before {
-            font-size: 22px;
-        }
-        
-        .friends-card h2::before { content: \"👥\"; }
-        .profile-card h2::before { content: \"👤\"; }
-        .stats-card h2::before { content: \"📊\"; }
-        
-        .friends-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        
-        .friend-item {
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-left: 4px solid transparent;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .friend-item:hover {
-            background: #e3f2fd;
-            border-left-color: #667eea;
-            transform: translateX(4px);
-        }
-        
-        .friend-avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: var(--color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .friend-name {
-            flex: 1;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .no-friends {
-            text-align: center;
-            color: #999;
-            padding: 20px;
-            font-size: 14px;
-        }
-        
-        .add-friend-form {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-        }
-        
-        .add-friend-form input {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-        
-        .add-friend-form button {
-            padding: 10px 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .add-friend-form button:hover {
-            background: #764ba2;
-        }
-        
-        .profile-info {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .info-item {
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .info-label {
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        
-        .info-value {
-            font-weight: 600;
-            color: #333;
-            word-break: break-all;
-            font-size: 13px;
-        }
-        
-        .copy-btn {
-            background: #e0e0e0;\n            border: none;\n            border-radius: 4px;\n            padding: 4px 8px;\n            cursor: pointer;\n            font-size: 11px;\n            margin-top: 4px;\n            transition: all 0.3s;\n        }\n        \n        .copy-btn:hover {\n            background: #667eea;\n            color: white;\n        }\n        \n        .stats-grid {\n            display: grid;\n            grid-template-columns: 1fr 1fr;\n            gap: 12px;\n        }\n        \n        .stat-box {\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: white;\n            padding: 15px;\n            border-radius: 10px;\n            text-align: center;\n        }\n        \n        .stat-number {\n            font-size: 28px;\n            font-weight: bold;\n            margin-bottom: 5px;\n        }\n        \n        .stat-label {\n            font-size: 12px;\n            opacity: 0.9;\n        }\n        \n        .chat-section {\n            display: flex;\n            flex-direction: column;\n            height: 600px;\n        }\n        \n        .messages-container {\n            flex: 1;\n            overflow-y: auto;\n            padding: 20px;\n            display: flex;\n            flex-direction: column;\n            gap: 12px;\n            margin-bottom: 15px;\n            background: #f8f9fa;\n            border-radius: 15px;\n        }\n        \n        .message {\n            max-width: 70%;\n            padding: 12px 16px;\n            border-radius: 12px;\n            animation: slideIn 0.3s ease-out;\n        }\n        \n        .message.mine {\n            align-self: flex-end;\n            background: #667eea;\n            color: white;\n        }\n        \n        .message.theirs {\n            align-self: flex-start;\n            background: white;\n            color: #333;\n            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\n        }\n        \n        @keyframes slideIn {\n            from {\n                opacity: 0;\n                transform: translateY(10px);\n            }\n            to {\n                opacity: 1;\n                transform: translateY(0);\n            }\n        }\n        \n        .input-area {\n            display: flex;\n            gap: 10px;\n        }\n        \n        .input-area input {\n            flex: 1;\n            padding: 12px;\n            border: 2px solid #e0e0e0;\n            border-radius: 10px;\n            font-size: 14px;\n            transition: all 0.3s;\n        }\n        \n        .input-area input:focus {\n            outline: none;\n            border-color: #667eea;\n        }\n        \n        .input-area button {\n            padding: 12px 20px;\n            background: #667eea;\n            color: white;\n            border: none;\n            border-radius: 10px;\n            cursor: pointer;\n            font-weight: 600;\n            transition: all 0.3s;\n        }\n        \n        .input-area button:hover {\n            background: #764ba2;\n        }\n        \n        .placeholder {\n            text-align: center;\n            color: #999;\n            padding: 40px 20px;\n            font-size: 14px;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"header\">\n        <h1>🔗 ZYNKO - {{ user[0] }}</h1>\n        <a href=\"/logout\" class=\"logout-btn\">Déconnexion</a>\n    </div>\n    \n    <div class=\"container\">\n        <!-- FRIENDS LIST -->\n        <div class=\"card friends-card\">\n            <h2>Amis</h2>\n            <div class=\"friends-list\">\n                {% if friends %}\n                    {% for friend in friends %}\n                        <div class=\"friend-item\" onclick=\"selectFriend({{ friend[0] }}, '{{ friend[1] }}')\">\n                            <div class=\"friend-avatar\" style=\"--color: {{ friend[2] }}\">\n                                {{ friend[1][0].upper() }}\n                            </div>\n                            <span class=\"friend-name\">{{ friend[1] }}</span>\n                        </div>\n                    {% endfor %}\n                {% else %}\n                    <div class=\"no-friends\">Aucun ami pour le moment 😔</div>\n                {% endif %}\n            </div>\n            \n            <div class=\"add-friend-form\">\n                <input type=\"text\" id=\"friendCode\" placeholder=\"Code ami...\" maxlength=\"12\">\n                <form method=\"POST\" action=\"/add_friend\" style=\"display: flex; gap: 8px; width: 100%;\">\n                    <input type=\"text\" name=\"code\" id=\"codeInput\" placeholder=\"Code\" style=\"flex: 1;\" required>\n                    <button type=\"submit\" style=\"padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;\">+</button>\n                </form>\n            </div>\n        </div>\n        \n        <!-- CHAT SECTION -->\n        <div class=\"card\" style=\"display: flex; flex-direction: column; height: 600px;\">\n            <div id=\"chatPlaceholder\" class=\"placeholder\">\n                Sélectionnez un ami pour commencer\n            </div>\n            <div id=\"chatSection\" class=\"chat-section\" style=\"display: none;\">\n                <div id=\"messagesContainer\" class=\"messages-container\"></div>\n                <div class=\"input-area\">\n                    <input type=\"text\" id=\"messageInput\" placeholder=\"Tapez un message...\" onkeypress=\"sendMessageOnEnter(event)\">\n                    <button onclick=\"sendMessage()\">Envoyer</button>\n                </div>\n            </div>\n        </div>\n        \n        <!-- PROFILE SECTION -->\n        <div class=\"card profile-card\">\n            <h2>Mon Code Ami</h2>\n            <div class=\"info-item\">\n                <div class=\"info-label\">📱 Partage ce code</div>\n                <div class=\"info-value\">{{ user[1] }}</div>\n                <button class=\"copy-btn\" onclick=\"copyToClipboard('{{ user[1] }}', this)\">📋 Copier</button>\n            </div>\n            \n            <h2 style=\"margin-top: 20px;\">Email</h2>\n            <div class=\"info-item\">\n                <div class=\"info-label\">✉️ Adresse</div>\n                <div class=\"info-value\">{{ user[2] }}</div>\n            </div>\n            \n            <h2 style=\"margin-top: 20px;\">📊 Statistiques</h2>\n            <div class=\"stats-grid\">\n                <div class=\"stat-box\">\n                    <div class=\"stat-number\">{{ friends|length }}</div>\n                    <div class=\"stat-label\">Amis</div>\n                </div>\n                <div class=\"stat-box\">\n                    <div class=\"stat-number\">0</div>\n                    <div class=\"stat-label\">Messages</div>\n                </div>\n            </div>\n        </div>\n    </div>\n    \n    <script>\n        let selectedFriendId = null;\n        \n        function selectFriend(friendId, friendName) {\n            selectedFriendId = friendId;\n            document.getElementById('chatPlaceholder').style.display = 'none';\n            document.getElementById('chatSection').style.display = 'flex';\n            document.getElementById('messagesContainer').innerHTML = '<div class=\"placeholder\">Chat avec ' + friendName + '</div>';\n        }\n        \n        function copyToClipboard(text, btn) {\n            navigator.clipboard.writeText(text).then(() => {\n                const originalText = btn.textContent;\n                btn.textContent = '✅ Copié!';\n                setTimeout(() => {\n                    btn.textContent = originalText;\n                }, 2000);\n            });\n        }\n        \n        function sendMessage() {\n            const message = document.getElementById('messageInput').value.trim();\n            if (!message || !selectedFriendId) return;\n            \n            const msgEl = document.createElement('div');\n            msgEl.className = 'message mine';\n            msgEl.textContent = message;\n            document.getElementById('messagesContainer').appendChild(msgEl);\n            document.getElementById('messageInput').value = '';\n            document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;\n        }\n        \n        function sendMessageOnEnter(e) {\n            if (e.key === 'Enter') sendMessage();\n        }\n    </script>\n</body>\n</html>\n
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <h2>Bonjour {{ user.username if user else 'Utilisateur' }}</h2>
+  <div class="row">
+    <div class="col-md-6">
+      <h4>Chat</h4>
+      <div id="chat" class="border p-2" style="height:300px; overflow:auto"></div>
+      <div class="input-group mt-2">
+        <input id="msg" class="form-control" placeholder="Message...">
+        <button id="send" class="btn btn-primary">Envoyer</button>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <h4>Appel vidéo (prototype)</h4>
+      <div>
+        <video id="localVideo" autoplay playsinline muted style="width:100%"></video>
+        <video id="remoteVideo" autoplay playsinline style="width:100%"></video>
+        <div class="mt-2">
+          <button id="startCall" class="btn btn-success">Démarrer appel</button>
+          <button id="hangup" class="btn btn-danger">Raccrocher</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block scripts %}
+  <script>
+    const SOCKET_URL = location.origin;
+    const socket = io(SOCKET_URL);
+    const room = "global";
+    const username = "{{ user.username if user else 'guest' }}";
+    socket.emit("join", {room, username});
+
+    // chat
+    const chatEl = document.getElementById("chat");
+    document.getElementById("send").onclick = () => {
+      const body = document.getElementById("msg").value;
+      if (!body) return;
+      socket.emit("chat_message", {room, username, body});
+      document.getElementById("msg").value = "";
+    };
+    socket.on("chat_message", (data) => {
+      const el = document.createElement("div");
+      el.textContent = `${data.username}: ${data.body}`;
+      chatEl.appendChild(el);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    });
+    socket.on("status", (data) => {
+      const el = document.createElement("div");
+      el.className = "text-muted small";
+      el.textContent = data.msg;
+      chatEl.appendChild(el);
+    });
+
+    // WebRTC signaling prototype
+    let pc;
+    const cfg = {iceServers: [{urls: "stun:stun.l.google.com:19302"}]};
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    document.getElementById("startCall").onclick = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+        localVideo.srcObject = stream;
+        pc = new RTCPeerConnection(cfg);
+        stream.getTracks().forEach(t => pc.addTrack(t, stream));
+        pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
+        pc.onicecandidate = e => { if (e.candidate) socket.emit("webrtc_signal", {room, from: username, type: "ice", candidate: e.candidate}); };
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit("webrtc_signal", {room, from: username, type: "offer", sdp: offer});
+      } catch (err) {
+        console.error('getUserMedia error', err);
+        alert('Impossible d\'accéder à la caméra / micro.');
+      }
+    };
+
+    socket.on("webrtc_signal", async (data) => {
+      if (!pc) {
+        pc = new RTCPeerConnection(cfg);
+        pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
+        pc.onicecandidate = e => { if (e.candidate) socket.emit("webrtc_signal", {room, from: username, type: "ice", candidate: e.candidate}); };
+      }
+      if (data.type === "offer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+        localVideo.srcObject = stream;
+        stream.getTracks().forEach(t => pc.addTrack(t, stream));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("webrtc_signal", {room, from: username, type: "answer", sdp: answer});
+      } else if (data.type === "answer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      } else if (data.type === "ice" && data.candidate) {
+        try { await pc.addIceCandidate(data.candidate); } catch(e){ console.warn('ICE add failed', e); }
+      }
+    });
+
+    document.getElementById("hangup").onclick = () => {
+      if (pc) { pc.close(); pc = null; }
+      if (localVideo.srcObject) localVideo.srcObject.getTracks().forEach(t => t.stop());
+      remoteVideo.srcObject = null;
+    };
+  </script>
+{% endblock %}
