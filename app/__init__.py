@@ -30,21 +30,42 @@ def create_app():
     @app.before_request
     def sanitize_path():
         try:
-            raw_path = request.path or ""
-            # Iteratively unquote (handles double-encoded sequences like %2522)
-            decoded = raw_path
-            for _ in range(3):
-                next_decoded = unquote(decoded)
-                if next_decoded == decoded:
+            # First, inspect the raw request URI from the WSGI environ if available.
+            # Some platforms (or proxies) preserve the original encoded path in RAW_URI/REQUEST_URI
+            raw_environ = None
+            for key in ('RAW_URI', 'REQUEST_URI', 'ORIG_PATH_INFO', 'RAW_PATH_INFO'):
+                raw_environ = request.environ.get(key)
+                if raw_environ:
                     break
-                decoded = next_decoded
+            # Fallback to request.path (may be already decoded)
+            raw_path = raw_environ if raw_environ else request.path or ""
 
-            # If decoded contains quote encodings or literal quotes, clean and redirect
+            # If we see encoded quotes in the raw path, decode and clean
+            if raw_path and ('%22' in raw_path or '%27' in raw_path or '%2522' in raw_path):
+                decoded = raw_path
+                for _ in range(3):
+                    next_decoded = unquote(decoded)
+                    if next_decoded == decoded:
+                        break
+                    decoded = next_decoded
+                cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
+                qs = request.query_string.decode() if request.query_string else ""
+                target = f"{cleaned}?{qs}" if qs else cleaned
+                app.logger.info("RAW sanitize redirect: %s -> %s", raw_path, target)
+                return redirect(target, code=301)
+
+            # As a secondary check operate on the already-decoded request.path
+            decoded = request.path or ""
+            for _ in range(2):
+                nxt = unquote(decoded)
+                if nxt == decoded:
+                    break
+                decoded = nxt
             if ('%22' in decoded) or ('%27' in decoded) or ('\"' in decoded) or ('\'' in decoded) or ('"' in decoded) or ("'" in decoded):
                 cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
                 qs = request.query_string.decode() if request.query_string else ""
                 target = f"{cleaned}?{qs}" if qs else cleaned
-                app.logger.info("sanitize_path redirect: %s -> %s", raw_path, target)
+                app.logger.info("sanitize_path redirect: %s -> %s", request.path, target)
                 return redirect(target, code=301)
         except Exception as e:
             app.logger.debug('sanitize_path error: %s', e)
