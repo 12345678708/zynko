@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, Response, jsonify, render_template
+from flask import Flask, request, redirect, Response, jsonify, render_template, url_for
 import logging
 from urllib.parse import unquote
 from .config import Config
@@ -61,7 +61,7 @@ def create_app():
                 if nxt == decoded:
                     break
                 decoded = nxt
-            if ('%22' in decoded) or ('%27' in decoded) or ('\"' in decoded) or ('\'' in decoded) or ('"' in decoded) or ("'" in decoded):
+            if ('%22' in decoded) or ('%27' in decoded) or ('\"' in decoded) or ("\'" in decoded) or ('"' in decoded) or ("'" in decoded):
                 cleaned = decoded.replace('%22', '').replace('%27', '').replace('"', '').replace("'", '')
                 qs = request.query_string.decode() if request.query_string else ""
                 target = f"{cleaned}?{qs}" if qs else cleaned
@@ -79,6 +79,17 @@ def create_app():
                "<text x=\"50\" y=\"65\" font-size=\"60\" text-anchor=\"middle\" fill=\"#fff\">Z</text>"
                "</svg>")
         return Response(svg, mimetype='image/svg+xml')
+
+    # Emergency explicit redirects for a few known malformed logout URLs
+    # These are very targeted and safe — they only redirect these exact paths.
+    @app.route('/%22/logout/%22')
+    @app.route('/%22/logout/')
+    @app.route('/%22/logout')
+    @app.route('/%22logout%22')
+    @app.route('/%22logout')
+    def redirect_malformed_logout():
+        app.logger.info("explicit redirect: malformed logout path -> /logout")
+        return redirect(url_for('auth.logout'), code=301)
 
     @app.route('/health')
     def health():
