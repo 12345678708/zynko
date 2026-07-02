@@ -24,5 +24,48 @@
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   {% block scripts %}{% endblock %}
+
+  <script>
+    // Force unregister any old service workers and clear caches so clients fetch latest assets
+    (function(){
+      if ('serviceWorker' in navigator) {
+        try{
+          navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(function(r){ r.unregister(); });
+          }).catch(function(){});
+        }catch(e){}
+      }
+      if (window.caches) {
+        try{
+          caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); }).catch(function(){});
+        }catch(e){}
+      }
+    })();
+
+    // Replace visible escaped "\\n" sequences in text nodes with line breaks (<br>)
+    (function replaceEscapedNewlines(){
+      function shouldSkip(node){
+        var p = node.parentElement; if(!p) return true;
+        var skip = ['SCRIPT','STYLE','TEXTAREA','PRE','CODE','INPUT','OPTION','SELECT'];
+        return skip.indexOf(p.tagName) !== -1;
+      }
+      try{
+        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        var nodes = [];
+        while(walker.nextNode()){
+          var n = walker.currentNode;
+          if(shouldSkip(n)) continue;
+          if(n.nodeValue && n.nodeValue.indexOf('\\n') !== -1){ nodes.push(n); }
+        }
+        nodes.forEach(function(n){
+          var parent = n.parentElement;
+          var parts = n.nodeValue.split('\\n').map(function(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); });
+          var span = document.createElement('span');
+          span.innerHTML = parts.join('<br>');
+          parent.replaceChild(span, n);
+        });
+      }catch(e){ console.warn('replaceEscapedNewlines failed', e); }
+    })();
+  </script>
 </body>
 </html>
