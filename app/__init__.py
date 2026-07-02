@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, Response, jsonify, render_template
 import logging
+from urllib.parse import unquote
 from .config import Config
 from .extensions import db, migrate, login_manager, socketio
 from .auth.routes import auth_bp
@@ -28,13 +29,27 @@ def create_app():
     # Quick fix: sanitize incoming paths that contain quoted characters (e.g. %22 or ")
     @app.before_request
     def sanitize_path():
-        path = request.path or ""
-        if "%22" in path or '"' in path:
-            new_path = path.replace("%22", "").replace('"', "")
-            qs = request.query_string.decode() if request.query_string else ""
-            target = f"{new_path}?{qs}" if qs else new_path
-            app.logger.info("Sanitizing bad path %s -> %s", path, target)
-            return redirect(target, code=301)
+        try:
+            raw_path = request.path or ""
+            # Iteratively unquote (handles double-encoded sequences like %2522)
+            decoded = raw_path
+            for _ in range(3):
+                next_decoded = unquote(decoded)
+                if next_decoded == decoded:
+                    break
+                decoded = next_decoded
+
+            # Remove common quote encodings and literal quotes
+            cleaned = decoded.replace('%22', '').replace('"', '').replace("'", '').replace('&quot;', '')
+
+            # If path changed, redirect to cleaned path (preserve query string)
+            if cleaned != decoded:
+                qs = request.query_string.decode() if request.query_string else ""
+                target = f"{cleaned}?{qs}" if qs else cleaned
+                app.logger.info("Sanitizing bad path %s -> %s", raw_path, target)
+                return redirect(target, code=301)
+        except Exception as e:
+            app.logger.debug('sanitize_path error: %s', e)
 
     # Provide a simple SVG favicon to avoid 404s until a real favicon is added to static/
     @app.route('/favicon.ico')

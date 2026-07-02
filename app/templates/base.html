@@ -66,6 +66,55 @@
         });
       }catch(e){ console.warn('replaceEscapedNewlines failed', e); }
     })();
+
+    // Sanitize anchor hrefs and intercept clicks for broken links containing quotes or %22
+    (function sanitizeAnchors(){
+      function cleanHref(h){
+        if(!h) return h;
+        try{
+          // decode up to twice to handle double-encoding
+          var d = decodeURIComponent(h);
+          try{ d = decodeURIComponent(d); }catch(e){}
+          d = d.replace(/%22/g,'').replace(/\"/g,'').replace(/^\s+|\s+$/g,'');
+          // remove leading/trailing quotes
+          d = d.replace(/^"+|"+$/g,'').replace(/^'+|'+$/g,'');
+          return d;
+        }catch(e){ return h; }
+      }
+
+      function processAll(){
+        document.querySelectorAll('a[href]').forEach(function(a){
+          var original = a.getAttribute('href');
+          var cleaned = cleanHref(original);
+          if(cleaned && cleaned !== original){
+            a.setAttribute('href', cleaned);
+          }
+        });
+      }
+
+      // Intercept clicks where href still contains %22 or quotes
+      document.addEventListener('click', function(e){
+        var a = e.target.closest && e.target.closest('a[href]');
+        if(!a) return;
+        var href = a.getAttribute('href');
+        if(!href) return;
+        if(href.indexOf('%22') !== -1 || href.indexOf('"') !== -1 || href.indexOf("'") !== -1){
+          e.preventDefault();
+          var cleaned = cleanHref(href);
+          if(cleaned){
+            window.location.href = cleaned;
+          }
+        }
+      }, true);
+
+      // run on load and after DOM mutations
+      document.addEventListener('DOMContentLoaded', processAll);
+      // observe DOM changes to catch dynamic anchors
+      try{
+        var obs = new MutationObserver(function(){ processAll(); });
+        obs.observe(document.body, { childList: true, subtree: true });
+      }catch(e){}
+    })();
   </script>
 </body>
 </html>
