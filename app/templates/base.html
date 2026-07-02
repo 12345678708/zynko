@@ -77,7 +77,7 @@
           try{ d = decodeURIComponent(d); }catch(e){}
           d = d.replace(/%22/g,'').replace(/\"/g,'').replace(/^\s+|\s+$/g,'');
           // remove leading/trailing quotes
-          d = d.replace(/^"+|"+$/g,'').replace(/^'+|'+$/g,'');
+          d = d.replace(/^\"+|\"+$/g,'').replace(/^'+|'+$/g,'');
           return d;
         }catch(e){ return h; }
       }
@@ -114,6 +114,15 @@
         var obs = new MutationObserver(function(){ processAll(); });
         obs.observe(document.body, { childList: true, subtree: true });
       }catch(e){}
+    })();
+
+    // Register the (new) service worker so clients get the updated assets
+    (function registerServiceWorker(){
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/service-worker.js')
+          .then(function(reg){ console.info('ServiceWorker registered', reg.scope); })
+          .catch(function(err){ console.warn('SW register failed', err); });
+      }
     })();
   </script>
 </body>
