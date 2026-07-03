@@ -138,19 +138,21 @@ def create_app():
 app = create_app()
 
 # Attempt to run DB migrations automatically on startup to avoid missing-tables errors in production.
-# Only run migrations if a 'migrations' directory is present in the project (safest behavior for deployed code).
-try:
-    from flask_migrate import upgrade as _upgrade
-    migrations_path = os.path.join(app.root_path, 'migrations')
-    if os.path.isdir(migrations_path):
+# Only run migrations if a migrations/ folder exists (avoid failing startup when no migration scripts are present).
+migrations_dir = os.path.join(app.root_path, 'migrations')
+if os.path.isdir(migrations_dir):
+    try:
+        from flask_migrate import upgrade as _upgrade
         with app.app_context():
             try:
                 _upgrade()
                 app.logger.info('Automatic DB migrations applied on startup')
+            except SystemExit as _se:
+                app.logger.warning('Automatic DB migration exited unexpectedly: %s', _se)
             except Exception as _e:
                 app.logger.warning('Automatic DB migration failed: %s', _e)
-    else:
-        app.logger.info("Migrations folder not found (%s). Skipping automatic migrations; create and commit migrations with 'flask db init' and 'flask db migrate'.", migrations_path)
-except Exception as ex:
-    # Migration package might not be available in some environments; don't fail startup.
-    app.logger.debug('flask_migrate.upgrade not available: %s', ex)
+    except Exception as ex:
+        # Migration package might not be available in some environments; don't fail startup.
+        app.logger.debug('flask_migrate.upgrade not available or failed to import: %s', ex)
+else:
+    app.logger.info('No migrations directory found, skipping automatic DB upgrade')
