@@ -18,6 +18,12 @@ def index():
 def dashboard():
     return render_template("dashboard.html", user=current_user)
 
+@main_bp.route('/messages')
+@login_required
+def messages():
+    # minimal messages page; template handles socket connections
+    return render_template('messages.html', user=current_user)
+
 @main_bp.route('/friends')
 @login_required
 def friends_page():
@@ -44,7 +50,10 @@ def send_friend_request():
     db.session.commit()
     # notify addressee if online
     room = f'user:{target.username}'
-    emit('friend_request', {'from':current_user.username, 'id': fr.id}, room=room)
+    try:
+        emit('friend_request', {'from':current_user.username, 'id': fr.id}, room=room)
+    except Exception:
+        current_app.logger.debug('Could not emit friend_request to %s', room)
     return jsonify({'status':'sent'})
 
 @main_bp.route('/friends/accept/<int:fr_id>', methods=['POST'])
@@ -58,7 +67,10 @@ def accept_friend(fr_id):
     # notify requester
     requester = User.query.get(fr.requester_id)
     room = f'user:{requester.username}'
-    emit('friend_accepted', {'by': current_user.username}, room=room)
+    try:
+        emit('friend_accepted', {'by': current_user.username}, room=room)
+    except Exception:
+        current_app.logger.debug('Could not emit friend_accepted to %s', room)
     return jsonify({'status':'accepted'})
 
 # Socket handlers
@@ -109,8 +121,11 @@ def handle_private_message(data):
     db.session.add(dm)
     db.session.commit()
     # emit to recipient personal room and sender
-    emit('private_message', {'from': from_user, 'body': body, 'created_at': dm.created_at.isoformat()}, room=f'user:{to}')
-    emit('private_message', {'to': to, 'body': body, 'created_at': dm.created_at.isoformat()}, room=f'user:{from_user}')
+    try:
+        emit('private_message', {'from': from_user, 'body': body, 'created_at': dm.created_at.isoformat()}, room=f'user:{to}')
+        emit('private_message', {'to': to, 'body': body, 'created_at': dm.created_at.isoformat()}, room=f'user:{from_user}')
+    except Exception:
+        current_app.logger.debug('Could not emit private_message to rooms user:%s or user:%s', to, from_user)
 
 @socketio.on('join_group')
 def handle_join_group(data):
@@ -129,7 +144,12 @@ def handle_group_message(data):
     body = data.get('body')
     if not group_id or not username or not body:
         return
-    gm = GroupMessage(group_id=group_id, user_id=None, body=body)
-    db.session.add(gm)
-    db.session.commit()
-    emit('group_message', {'group_id': group_id, 'username': username, 'body': body, 'created_at': gm.created_at.isoformat()}, room=f'group:{group_id}')
+    try:
+        user = User.query.filter_by(username=username).first()
+        user_id = user.id if user else None
+        gm = GroupMessage(group_id=group_id, user_id=user_id, body=body)
+        db.session.add(gm)
+        db.session.commit()
+        emit('group_message', {'group_id': group_id, 'username': username, 'body': body, 'created_at': gm.created_at.isoformat()}, room=f'group:{group_id}')
+    except Exception:
+        current_app.logger.exception('Failed to store/emit group message')
