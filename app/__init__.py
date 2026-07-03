@@ -7,6 +7,9 @@ from .extensions import db, migrate, login_manager, socketio
 from .auth.routes import auth_bp
 from .main.routes import main_bp
 
+# used to inspect existing tables
+from sqlalchemy import inspect as sqlalchemy_inspect
+
 
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -155,4 +158,16 @@ if os.path.isdir(migrations_dir):
         # Migration package might not be available in some environments; don't fail startup.
         app.logger.debug('flask_migrate.upgrade not available or failed to import: %s', ex)
 else:
-    app.logger.info('No migrations directory found, skipping automatic DB upgrade')
+    # No migrations directory — attempt to create tables from current models as a safe fallback.
+    try:
+        with app.app_context():
+            inspector = sqlalchemy_inspect(db.engine)
+            existing = inspector.get_table_names()
+            if not existing:
+                app.logger.info('No existing tables detected — creating tables from models (db.create_all)')
+                db.create_all()
+                app.logger.info('db.create_all() completed')
+            else:
+                app.logger.info('Existing tables detected; skipping db.create_all()')
+    except Exception as ex:
+        app.logger.warning('Automatic db.create_all() failed: %s', ex)
