@@ -5,6 +5,8 @@
       <ul class="navbar-nav ms-auto">
         {% if current_user.is_authenticated %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.friends_page') }}">Amis</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.messages') }}">Messages</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Se déconnecter</a></li>
         {% else %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Se connecter</a></li>

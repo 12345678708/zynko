@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-4">
+    <h4>Conversations</h4>
+    <ul id="conversations" class="list-group"></ul>
+    <h5 class="mt-3">Envoyer un message privé</h5>
+    <form id="dmForm">
+      <input id="dmTo" class="form-control mb-2" placeholder="Destinataire">
+      <textarea id="dmBody" class="form-control mb-2" placeholder="Message"></textarea>
+      <button class="btn btn-primary" type="submit">Envoyer DM</button>
+    </form>
+    <h5 class="mt-3">Groupe</h5>
+    <form id="groupForm">
+      <input id="groupId" class="form-control mb-2" placeholder="ID du groupe">
+      <textarea id="groupBody" class="form-control mb-2" placeholder="Message de groupe"></textarea>
+      <button class="btn btn-secondary" type="submit">Envoyer au groupe</button>
+    </form>
+  </div>
+  <div class="col-md-8">
+    <h4>Flux</h4>
+    <div id="messages" class="border p-2" style="height:70vh; overflow:auto"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='messaging.js') }}"></script>
+{% endblock %}

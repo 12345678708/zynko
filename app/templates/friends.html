@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Amis{% endblock %}
+{% block content %}
+<h2>Amis et demandes</h2>
+<div class="row">
+  <div class="col-md-6">
+    <h4>Demandes reçues</h4>
+    {% if requests %}
+      <ul class="list-group">
+        {% for r in requests %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ r.requester_id }}
+            <div>
+              <form method="post" action="{{ url_for('main.accept_friend', fr_id=r.id) }}" style="display:inline">
+                <button class="btn btn-sm btn-success">Accepter</button>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Aucune demande en attente.</p>
+    {% endif %}
+  </div>
+  <div class="col-md-6">
+    <h4>Ajouter un ami</h4>
+    <form id="friendRequestForm">
+      <div class="mb-3">
+        <input id="friendUsername" class="form-control" placeholder="Nom d'utilisateur" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Envoyer la demande</button>
+    </form>
+    <div id="friendResult" class="mt-2"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('friendRequestForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const username = document.getElementById('friendUsername').value.trim();
+  if(!username) return;
+  const res = await fetch('/friends/request', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username})});
+  const j = await res.json();
+  document.getElementById('friendResult').textContent = JSON.stringify(j);
+});
+</script>
+{% endblock %}
