@@ -1,6 +1,0 @@
-/* Minimal cleaned stylesheet to replace broken file */
-:root{--primary:#667eea;--bg:#f8f9fa;--text:#222}
-body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial;margin:0;background:linear-gradient(180deg,#f7f9fc,#fff);color:var(--text)}
-.container{max-width:1200px;margin:24px auto;padding:0 16px}
-.card{background:white;border-radius:12px;padding:16px;box-shadow:0 6px 20px rgba(16,24,40,0.06)}
-.btn-logout{background:var(--primary);color:white;padding:8px 12px;border-radius:8px;text-decoration:none}
